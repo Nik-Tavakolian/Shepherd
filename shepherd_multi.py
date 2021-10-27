@@ -72,10 +72,16 @@ if __name__ == '__main__':
                                         description='Cluster barcode reads at multiple time points')
     my_parser.add_argument('-f0', action='store', type=str, required=True, help='Data file from first time point')
     my_parser.add_argument('-fn', action='store', nargs='+', help='Ordered list of data files from later time points')
+    my_parser.add_argument('-o', action='store', type=str, help='Output file name prefix')
     args = my_parser.parse_args()
 
     f0_prefix = args.f0[:-4]
     multi_filenames = args.fn
+
+    if args.o == None:
+        o_fn_prefix = 'multi_freqs'
+    else:
+        o_fn_prefix = args.o
 
     with open(f0_prefix + '_index', 'rb') as handle:
         k_mer_dict = pickle.load(handle)
@@ -110,7 +116,7 @@ if __name__ == '__main__':
     end = time.time()
     print('Classification: ' + str(end - start))
 
-    with open('multi_freqs.csv', 'w', newline='') as result:
+    with open(o_fn_prefix + '.csv', 'w', newline='') as result:
         writer = csv.writer(result, delimiter=",")
         col_names = ['barcode']
         time_points = ['time_point_' + str(i) for i in range(1, len(pb_to_freq_dict_list) + 1)]
