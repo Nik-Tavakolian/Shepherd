@@ -69,4 +69,5 @@ This script is designed to use the the clustering from the first time point, i.e
 
 ### Usage
 
-**Command line usage example:** <code>python shepherd_multi.py -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
+**Command line usage example:** 
+<code>python shepherd_multi.py -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
