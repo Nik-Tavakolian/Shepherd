@@ -98,11 +98,14 @@ if __name__ == '__main__':
     with open(f0_prefix + '_params', 'rb') as f:
         q, l, p, eps = pickle.load(f)
 
-    print('Starting Classification')
+    print('Starting classification')
+    print('\t')
 
     start = time.time()
     pb_to_freq_dict_list = [pb_to_freq_dict]
+    i = 1
     for filename in multi_filenames:
+        print('Classifying time point ' + str(i))
         seq_freq_list = []
         with open(filename, 'r') as a_file:
             for line in a_file:
@@ -111,10 +114,11 @@ if __name__ == '__main__':
 
         pb_to_freq_dict = classify_reads(seq_freq_list, k_mer_dict, pb_to_freq_dict, q, l, p, eps)
         pb_to_freq_dict_list.append(pb_to_freq_dict)
-        print(len(pb_to_freq_dict))
+        i += 1
 
     end = time.time()
-    print('Classification: ' + str(end - start))
+    print('\t')
+    print('Classification time: ' + str(end - start))
 
     with open(o_fn_prefix + '.csv', 'w', newline='') as result:
         writer = csv.writer(result, delimiter=",")
@@ -131,3 +135,5 @@ if __name__ == '__main__':
                     line.append(0)
 
             writer.writerow(line)
+
+    print('Results saved to ' + o_fn_prefix + '.csv')
