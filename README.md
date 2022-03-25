@@ -43,7 +43,7 @@ These inputs are optional and we recommend using the default values determined b
 
 **-bft:** (float) The threshold for log Bayes factor. The default value is -4.
 
-**-Nh:** (float) Number of sequences used for estimation of the substitution error rate. The default value is min(number of sequences, 500).
+**-Nh:** (integer) Number of sequences used for estimation of the substitution error rate. The default value is min(number of sequences, 500).
 
 ### Outputs
 
@@ -61,17 +61,17 @@ These inputs are optional and we recommend using the default values determined b
 
 ### The shepherd_multi.py script
 
-This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. Note that the shepherd_t0.py script should be executed in the same folder prior to running shepherd_multi.py. 
+This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that the shepherd_t0.py script should be executed in the same folder prior to running shepherd_multi.py. 
 
 ### Inputs
 
-**-f0:** (.txt file) The same input file used to run the shepherd_t0.py script containing the sequences and the sequence frequencies.                                             
-**-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence frequencies for each time point. These files should have the same format as the input file to shepherd_t0.py (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
+**-f0:** (.txt file) The same input file used to run the shepherd_t0.py script containing the sequences and the sequence counts.                                             
+**-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd_t0.py (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
 **-o:** (string) The prefix of the output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
 
 ### Outputs
 
-**multi_freqs.csv:** A .csv file where each row is a putative barcode and the columns give the estimated frequencies for each time point.
+**multi_freqs.csv:** A .csv file where each row is a putative barcode and the columns give the estimated counts for each time point.
 
 ### Usage
 
