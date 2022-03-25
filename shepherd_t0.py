@@ -6,8 +6,7 @@ import math
 import sys
 import argparse
 import csv
-
-binom_pmf = lambda k, n, p: math.comb(n, k)*(p**k)*(1-p)**(n-k)
+from scipy.stats import binom
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
 
@@ -38,6 +37,34 @@ def find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom):
         if logK < 0:
             return d - 1
 
+def estimate_rho(sorted_seq_list, seq_freq_dict_dict, l, N_h):
+    correct_freq = 0
+    total_SNP_count = 0
+    for i, high_freq_seq in enumerate(sorted_seq_list):
+        correct_freq += seq_freq_dict_dict[high_freq_seq]
+        total_SNP_count += get_SNP_freq_sum(high_freq_seq, seq_freq_dict_dict)
+        if i == N_h:
+            break
+        i += 1
+    v = total_SNP_count / (correct_freq * l)
+    rho = v / (v + 1)
+
+    return rho
+
+
+def get_SNP_freq_sum(high_freq_seq, seq_freq_dict_dict):
+
+    SNP_count = 0
+    nucleotides = {'A', 'C', 'T', 'G'}
+    for i, nuc_current in enumerate(high_freq_seq):
+        for nuc_new in nucleotides:
+            if nuc_new != nuc_current:
+                snp_seq = high_freq_seq[:i] + nuc_new + high_freq_seq[i + 1:]
+                if snp_seq in seq_freq_dict_dict:
+                    SNP_count += seq_freq_dict_dict[snp_seq]
+
+    return SNP_count
+
 def find_tau(l, p_no_err, total_err_rate, logdenom):
 
     f_c = 1
@@ -65,10 +92,10 @@ def find_q_p(eps, l):
         q = round(l/p)
         res = l % q
         if res == 0:
-            if sum(binom_pmf(x, l, 3/4) for x in range(eps + 1, q*eps + 1)) < 0.5:
+            if sum(binom.pmf(x, l, 3/4) for x in range(eps + 1, q*eps + 1)) < 0.5:
                     return q, p
         else:
-            if sum(binom_pmf(x, l, 3/4) for x in range(eps + 1, l - (q*((p - eps)-1) + res) + 1)) < 0.5:
+            if sum(binom.pmf(x, l, 3/4) for x in range(eps + 1, l - (q*((p - eps)-1) + res) + 1)) < 0.5:
                     return q, p
 
 
@@ -102,12 +129,12 @@ def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
     return candidates
 
-def get_log_K(f_n, f_c, p_no_err, d, n, total_err_rate, logdenom):
+def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 
     n_hat = max(int(f_c/p_no_err), f_c + f_n)
-    p_est = (total_err_rate/3)**d * (1 - total_err_rate)**(n - d)
+    p_est = (total_err_rate/3)**d * (1 - total_err_rate)**(l - d)
 
-    return math.log(binom_pmf(f_n, n_hat, p_est)) + math.log(p_est) + logdenom
+    return binom.logpmf(f_n, n_hat, p_est) + math.log(p_est) + logdenom
 
 
 def locate_mins(a):
@@ -153,39 +180,88 @@ def cluster_reads(seq_list, seq_to_freq_dict, k_mer_dict, q, p,
 
     return seq_to_clust_dict, pb_to_freq_dict
 
+def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
+    for seq, freq in deletions_dict.items():
+        for i in range(l):
+            for n in ['A', 'C', 'G', 'T']:
+                corrected_seq = seq[:i] + n + seq[i:]
+                if corrected_seq in pb_to_freq_dict:
+                    pb_to_freq_dict[corrected_seq] += freq
+                    seq_to_clust_dict[seq] = seq_to_clust_dict[corrected_seq]
+                    break
+            else:
+                continue
+            break
+
+    return seq_to_clust_dict, pb_to_freq_dict
+
+def correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
+
+    for seq, freq in insertions_dict.items():
+        for i in range(l + 1):
+            corrected_seq = seq[:i] + seq[i + 1:]
+            if corrected_seq in pb_to_freq_dict:
+                pb_to_freq_dict[corrected_seq] += freq
+                seq_to_clust_dict[seq] = seq_to_clust_dict[corrected_seq]
+                break
+
+    return seq_to_clust_dict, pb_to_freq_dict
+
 if __name__ == '__main__':
 
     my_parser = argparse.ArgumentParser(prog='Shepherd Single',
                                         description='Cluster barcode reads at a single time point')
     my_parser.add_argument('-f', action='store', type=str, required=True, help='Input file name')
-    my_parser.add_argument('-e', action='store', type=float, required=True, help='Substitution error rate estimate')
+    my_parser.add_argument('-l', action='store', type=int, required=True, help='Barcode length')
+    my_parser.add_argument('-e', action='store', type=float, help='Substitution error rate estimate')
     my_parser.add_argument('-eps', action='store', type=int, help='Hamming distance threshold')
     my_parser.add_argument('-k', action='store', type=int, help='Substring length')
     my_parser.add_argument('-tau', action='store', type=int, help='Distance threshold for frequency 1 sequences')
     my_parser.add_argument('-ft', action='store', type=int, help='Frequency threshold')
     my_parser.add_argument('-bft', action='store', type=float, help='Bayes factor threshold')
+    my_parser.add_argument('-Nh', action='store', type=int, help='Number of sequences used for rho estimation')
     args = my_parser.parse_args()
 
     filename = args.f
     file_prefix = filename[:-4]
-    total_err_rate = args.e
+    l = args.l
 
-    sim_data = {}
+    deletions_dict = {}
+    insertions_dict = {}
+    seq_freq_dict = {}
     with open(filename, 'r') as a_file:
         for line in a_file:
-            key, value = line.split()
-            sim_data[key] = int(value)
+            seq, freq = line.split()
+            seq_len = len(seq)
+            if seq_len == l:
+                seq_freq_dict[seq] = int(freq)
+            if seq_len == l - 1:
+                deletions_dict[seq] = int(freq)
+            if seq_len == l + 1:
+                insertions_dict[seq] = int(freq)
+
 
     start_tot = time.time()
 
-    seq_list = [seq for seq, freq in sorted(sim_data.items(), key=lambda x: x[1], reverse=True)]
+    seq_list = [seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)]
 
-    l = len(seq_list[0])
-    p_no_err = binom_pmf(0, l, total_err_rate)
-    # p_no_err = binom(l, total_err_rate).pmf(0)
+    if args.Nh == None:
+        Nh = 500
+    else:
+        Nh = args.Nh
 
-    highest_freq = sim_data[seq_list[0]]
-    logdenom = l*math.log(4) + math.log(highest_freq)
+    if args.e == None:
+        total_err_rate = estimate_rho(seq_list, seq_freq_dict, l, Nh)
+        if total_err_rate == 0:
+            raise ValueError('Error rate could not be estimated from the data. Please provide an error rate estimate.')
+    else:
+        total_err_rate = args.e
+
+    print('Substitution Error Rate Estimate: ' + str(total_err_rate))
+
+    highest_freq = seq_freq_dict[seq_list[0]]
+    logdenom = l * math.log(4) + math.log(highest_freq)
+    p_no_err = binom.pmf(0, l, total_err_rate)
 
     if args.eps == None:
         eps = find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom)
@@ -216,6 +292,7 @@ if __name__ == '__main__':
     print('Shepherd Single Parameters:')
     print('\t')
     print('Sequence length: ' + str(l))
+    print('Substitution Error Rate Estimate: ' + str(total_err_rate))
     print('epsilon: ' + str(eps))
     print('tau: ' + str(tau))
     print('f: ' + str(f))
@@ -225,24 +302,28 @@ if __name__ == '__main__':
     print('\t')
 
     start = time.time()
-    k_mer_dict = create_k_mer_dict(sim_data, q, p, l, eps)
+    k_mer_dict = create_k_mer_dict(seq_freq_dict, q, p, l, eps)
     end = time.time()
     print('k-mer Index creation time: ' + str(end - start))
 
     start = time.time()
-    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(seq_list, sim_data, k_mer_dict, q, p, eps, tau, f, l,
+    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(seq_list, seq_freq_dict, k_mer_dict, q, p, eps, tau, f, l,
                                                         p_no_err, total_err_rate, logdenom, bft)
+    seq_to_clust_dict, pb_to_freq_dict = correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l)
+    seq_to_clust_dict, pb_to_freq_dict = correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l)
     end = time.time()
     print('Clustering time: ' + str(end - start))
 
-    with open(file_prefix + '_index', 'wb') as f:
-        pickle.dump(k_mer_dict, f)
 
-    with open(file_prefix + '_params', 'wb') as f:
-        pickle.dump([q, l, p, eps], f)
 
-    with open(file_prefix + '_seq_clust.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
+    with open(file_prefix + '_index', 'wb') as fh:
+        pickle.dump(k_mer_dict, fh)
+
+    with open(file_prefix + '_params', 'wb') as fh:
+        pickle.dump([q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f], fh)
+
+    with open(file_prefix + '_seq_clust.csv', 'w', newline='') as fh:
+        writer = csv.writer(fh)
         i = 0
         for key, value in seq_to_clust_dict.items():
             if i == 0:
@@ -250,8 +331,8 @@ if __name__ == '__main__':
             writer.writerow([key, value])
             i += 1
 
-    with open(file_prefix + '_pb_freq.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
+    with open(file_prefix + '_pb_freq.csv', 'w', newline='') as fh:
+        writer = csv.writer(fh)
         i = 0
         for key, value in pb_to_freq_dict.items():
             if i == 0:

@@ -2,13 +2,13 @@
 
 ## Getting Started
 
-Shepherd is a Python program for correcting substitution errors in DNA barcode reads that occur during PCR amplification and sequencing. Shepherd is cross-platform and runs on any computer with Python 3.8 or later. 
+Shepherd is a Python program for correcting substitution errors in DNA barcode reads that occur during PCR amplification and sequencing. Shepherd is cross-platform and runs on any computer with Python 3.8 or later and the Scipy library. 
 
 The program consists of two python scripts: shepherd_t0.py and shepherd_multi.py. These scripts are used via a command line interface described below.
 
 ### The shepherd_t0.py script
 
-This script is designed to cluster the sequencing reads from a single time point to correct substitution errors. 
+This script is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors. 
 
 ### Inputs
 
@@ -16,7 +16,9 @@ This script is designed to cluster the sequencing reads from a single time point
 
 These inputs must be provided to run the script.
 
-**-f:** (.txt file) The input file with a sequence and a sequence frequency in each row, separated by whitespace. Currently this is the only input file format supported by Shepherd.
+**-l:** (integer) The correct barcode length.
+
+**-f:** (.txt file) The input file with a sequence and a sequence count in each row, separated by whitespace. Currently this is the only input file format supported by Shepherd. Only sequences in the file with lengths l (correct barcode length), l + 1 (single insertion errors) and l - 1 (single deletion errors) will be processed by Shepherd.
 
     Example file:   testdata_t0.txt
     
@@ -25,12 +27,11 @@ These inputs must be provided to run the script.
                     ATCCAGTGCTAGTTCAACTC	3
                     AATTTTGGAACAGGCCGTAG	200
     
-
-**-e:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a       floating point number, e.g. 0.01 if the estimated error rate is 1%.
-
 #### Optional Inputs
 
 These inputs are optional and we recommend using the default values determined by Shepherd.
+
+**-e:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a       floating point number, e.g. 0.01 if the estimated error rate is 1%.
 
 **-eps:** (integer) The maximum Hamming distance considered for merging two sequencing into the same cluster. If not provided this parameter is automatically determined based on the input data.
 
@@ -42,11 +43,16 @@ These inputs are optional and we recommend using the default values determined b
 
 **-bft:** (float) The threshold for log Bayes factor. The default value is -4.
 
+**-Nh:** (float) Number of sequences used for estimation of the substitution error rate. The default value is min(number of sequences, 500).
+
 ### Outputs
 
 **_seq_clust.csv:** A .csv file where the unique sequences are in the first column and the cluster labels are in the second column.
-**_pb_freq.csv:** A .csv file where the putative barcodes are in the first column and the estimated frequencies are in the second column.
-**_index:** The k-mer Index stored in the pickle format.                                                                                             
+
+**_pb_freq.csv:** A .csv file where the putative barcodes are in the first column and the estimated counts are in the second column.
+
+**_index:** The k-mer Index stored in the pickle format.
+                                                                                             
 **_params:** The parameters used to run the script stored in the pickle format.
 
 ### Usage
@@ -55,7 +61,7 @@ These inputs are optional and we recommend using the default values determined b
 
 ### The shepherd_multi.py script
 
-This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the frequencies of the putative barcodes at later time points, given the sequencing reads from each time point. Note that the shepherd_t0.py script should be executed in the same folder prior to running shepherd_multi.py. 
+This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. Note that the shepherd_t0.py script should be executed in the same folder prior to running shepherd_multi.py. 
 
 ### Inputs
 
