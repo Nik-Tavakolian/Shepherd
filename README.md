@@ -31,7 +31,7 @@ These inputs must be provided to run the script.
 
 These inputs are optional and we recommend using the default values determined by Shepherd.
 
-**-e:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a       floating point number, e.g. 0.01 if the estimated error rate is 1%.
+**-e:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a floating point number, e.g. 0.01 if the estimated error rate is 1%. If not provided this parameter is automatically determined based on the input data.
 
 **-eps:** (integer) The maximum Hamming distance considered for merging two sequencing into the same cluster. If not provided this parameter is automatically determined based on the input data.
 
