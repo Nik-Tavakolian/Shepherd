@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-Shepherd is a Python program for correcting substitution errors and single insertion and deletion errors in DNA barcode reads, that occur during PCR amplification and sequencing. Shepherd is cross-platform and runs on any computer with Python 3.8 or later and the Scipy library. 
+Shepherd is a Python program for correcting substitution errors and single insertion and deletion errors in DNA barcode reads. These errors occur during PCR amplification and sequencing of the DNA barcodes. Shepherd is cross-platform and runs on any computer with Python 3.8 or later and the Scipy library. 
 
 The program consists of two python scripts: shepherd_t0.py and shepherd_multi.py. These scripts are used via a command line interface described below.
 
