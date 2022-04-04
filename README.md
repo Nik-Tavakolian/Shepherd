@@ -57,7 +57,7 @@ These inputs are optional and we recommend using the default values determined b
 
 ### Usage
 
-**Command line usage example:** <code>python shepherd_t0.py -f testdata_t0.txt -l 20 -e 0.01</code>
+**Command line usage example:** <code>python3 shepherd_t0.py -f testdata_t0.txt -l 20 -e 0.01</code>
 
 ### The shepherd_multi.py script
 
@@ -76,4 +76,4 @@ This script is designed to use the the clustering from the first time point, i.e
 ### Usage
 
 **Command line usage example:**\
-<code>python shepherd_multi.py -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
+<code>python3 shepherd_multi.py -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
