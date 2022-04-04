@@ -57,7 +57,7 @@ These inputs are optional and we recommend using the default values determined b
 
 ### Usage
 
-**Command line usage example:** <code>python shepherd_t0.py -f testdata_t0.txt -e 0.01</code>
+**Command line usage example:** <code>python shepherd_t0.py -f testdata_t0.txt -l 20 -e 0.01</code>
 
 ### The shepherd_multi.py script
 
