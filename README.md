@@ -61,7 +61,7 @@ These inputs are optional and we recommend using the default values determined b
 
 ### The shepherd_multi.py script
 
-This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that the shepherd_t0.py script should be executed in the same folder prior to running shepherd_multi.py. 
+This script is designed to use the the clustering from the first time point, i.e. the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that the shepherd_t0.py script must be executed in the same folder prior to running shepherd_multi.py. 
 
 ### Inputs
 
