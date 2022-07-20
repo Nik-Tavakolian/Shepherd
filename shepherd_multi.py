@@ -305,8 +305,15 @@ if __name__ == '__main__':
         seq_to_clust_dict, pb_to_freq_dict = correct_insertions(insertions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
         seq_to_clust_dict, pb_to_freq_dict = correct_deletions(deletions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
 
+        with open(filename[:-4] + '_seq_clust.csv', 'w', newline='') as res:
+            writer = csv.writer(res)
+            writer.writerow(['sequence', 'cluster'])
+            for key, value in seq_to_clust_dict.items():
+                writer.writerow([key, value])
+
         pb_to_freq_dict_list.append(pb_to_freq_dict_t0)
         pb_to_freq_dict_t0 = pb_to_freq_dict_t1
+        print('Time Point ' + str(i) + ' was successfully classified. Results were saved to ' + filename[:-4] + '_seq_clust.csv \n')
         i += 1
 
     pb_to_freq_dict_list.append(pb_to_freq_dict_t1)
@@ -331,4 +338,4 @@ if __name__ == '__main__':
 
             writer.writerow(line)
 
-    print('Results saved to ' + o_fn_prefix + '.csv')
+    print('Results were saved to ' + o_fn_prefix + '.csv')
