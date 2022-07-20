@@ -66,7 +66,9 @@ This script is designed to use the the clustering from the first time point, i.e
 ### Inputs
 
 **-f0:** (.txt file) The same input file used to run the shepherd_t0.py script containing the sequences and the sequence counts.                                             
+
 **-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd_t0.py (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
+
 **-o:** (string) The prefix of the final output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
 
 ### Outputs
