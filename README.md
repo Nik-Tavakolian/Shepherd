@@ -72,6 +72,7 @@ This script is designed to use the the clustering from the first time point, i.e
 ### Outputs
 
 **multi_freqs.csv:** A .csv file where each row is a putative barcode and the columns give the estimated counts for each time point.
+
 **seq_clust.csv:** A .csv file for each time point where each row contains a sequence and the cluster ID it was assigned.
 
 ### Usage
