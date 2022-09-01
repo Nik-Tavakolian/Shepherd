@@ -89,6 +89,8 @@ def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t
         elif seq in unassigned_pb_freq_dict:
             pb_to_freq_dict_t0[seq] = unassigned_pb_freq_dict[seq]
             pb_to_freq_dict_t1[seq] = freq
+            pb_to_seqs_dict_t1[seq] = []
+            seq_to_clust_dict_t1[seq] = i
             k_mer_dict = add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
         else:
             out = get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps)
@@ -147,7 +149,8 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
 
 def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict, k_mer_dict, params):
 
-    for seq_u, f_u in unassigned_seq_dict.items():
+    unassigned_seq_dict_copy = unassigned_seq_dict.copy()
+    for seq_u, f_u in unassigned_seq_dict_copy.items():
         out = get_closest_pb(seq_u, pb_to_freq_dict, k_mer_dict,
                                           params[0], params[1], params[2], params[3])
         if out:
