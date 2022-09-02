@@ -71,7 +71,7 @@ def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 
 def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params):
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f = params
+    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     unassigned_seqs_dict = {}
     pb_to_freq_dict_t1 = {}
     seq_to_clust_dict_t1 = {}
@@ -116,7 +116,7 @@ def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t
 def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, pb_to_seqs_dict_t1,
                       seq_to_dist_dict_t1, k_mer_dict, params):
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f = params
+    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     id_count = max(seq_to_clust_dict_t1.values())
     for pb, seqs in pb_to_seqs_dict_t1.items():
         for i, seq in enumerate(seqs):
@@ -164,7 +164,7 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
 
 def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f = params
+    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     pb_to_freq_dict = {}
     seq_to_clust_dict = {}
     for i, S_c in enumerate(seq_list):

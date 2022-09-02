@@ -320,7 +320,7 @@ if __name__ == '__main__':
         pickle.dump(k_mer_dict, fh)
 
     with open(file_prefix + '_params', 'wb') as fh:
-        pickle.dump([q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f], fh)
+        pickle.dump([q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau], fh)
 
     with open(file_prefix + '_seq_clust.csv', 'w', newline='') as fh:
         writer = csv.writer(fh)
