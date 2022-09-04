@@ -98,18 +98,17 @@ def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t
             out = get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps)
             if out:
                 closest_pb, dist = out
-                if dist < l:
-                    seq_to_dist_dict_t1[seq] = dist
-                    if closest_pb:
-                        if not closest_pb in pb_to_freq_dict_t1:
-                            pb_to_freq_dict_t1[closest_pb] = freq
-                            pb_to_seqs_dict_t1[closest_pb] = [seq]
-                            seq_to_clust_dict_t1[closest_pb] = i
-                            seq_to_clust_dict_t1[seq] = i
-                        else:
-                            pb_to_freq_dict_t1[closest_pb] += freq
-                            pb_to_seqs_dict_t1[closest_pb].append(seq)
-                            seq_to_clust_dict_t1[seq] = seq_to_clust_dict_t1[closest_pb]
+                seq_to_dist_dict_t1[seq] = dist
+                if closest_pb:
+                    if not closest_pb in pb_to_freq_dict_t1:
+                        pb_to_freq_dict_t1[closest_pb] = freq
+                        pb_to_seqs_dict_t1[closest_pb] = [seq]
+                        seq_to_clust_dict_t1[closest_pb] = i
+                        seq_to_clust_dict_t1[seq] = i
+                    else:
+                        pb_to_freq_dict_t1[closest_pb] += freq
+                        pb_to_seqs_dict_t1[closest_pb].append(seq)
+                        seq_to_clust_dict_t1[seq] = seq_to_clust_dict_t1[closest_pb]
             else:
                 unassigned_seqs_dict[seq] = freq
 
