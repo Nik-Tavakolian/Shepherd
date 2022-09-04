@@ -55,6 +55,8 @@ def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
         pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict_t0]
         if pb_neighbors:
             min_dist, indices = locate_mins([trunc_ham_dist(seq, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors])
+            if min_dist == l:
+                return None
             if len(indices) == 1:
                 closest_pb = pb_neighbors[indices[0]]
             else:
@@ -96,17 +98,18 @@ def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t
             out = get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps)
             if out:
                 closest_pb, dist = out
-                seq_to_dist_dict_t1[seq] = dist
-                if closest_pb:
-                    if not closest_pb in pb_to_freq_dict_t1:
-                        pb_to_freq_dict_t1[closest_pb] = freq
-                        pb_to_seqs_dict_t1[closest_pb] = [seq]
-                        seq_to_clust_dict_t1[closest_pb] = i
-                        seq_to_clust_dict_t1[seq] = i
-                    else:
-                        pb_to_freq_dict_t1[closest_pb] += freq
-                        pb_to_seqs_dict_t1[closest_pb].append(seq)
-                        seq_to_clust_dict_t1[seq] = seq_to_clust_dict_t1[closest_pb]
+                if dist < l:
+                    seq_to_dist_dict_t1[seq] = dist
+                    if closest_pb:
+                        if not closest_pb in pb_to_freq_dict_t1:
+                            pb_to_freq_dict_t1[closest_pb] = freq
+                            pb_to_seqs_dict_t1[closest_pb] = [seq]
+                            seq_to_clust_dict_t1[closest_pb] = i
+                            seq_to_clust_dict_t1[seq] = i
+                        else:
+                            pb_to_freq_dict_t1[closest_pb] += freq
+                            pb_to_seqs_dict_t1[closest_pb].append(seq)
+                            seq_to_clust_dict_t1[seq] = seq_to_clust_dict_t1[closest_pb]
             else:
                 unassigned_seqs_dict[seq] = freq
 
