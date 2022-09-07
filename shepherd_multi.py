@@ -162,7 +162,7 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
                 seq_to_clust_dict[seq_u] = seq_to_clust_dict[closest_pb]
                 del unassigned_seq_dict[seq_u]
 
-    return unassigned_seq_dict
+    return unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict
 
 def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
 
@@ -297,8 +297,10 @@ if __name__ == '__main__':
                                                                            seq_to_dist_dict, k_mer_dict, params)
 
         if unassigned_seq_dict:
-            unassigned_seq_dict = classify_unassigned(unassigned_seq_dict, pb_to_freq_dict_t1,
-                                                      seq_to_clust_dict, k_mer_dict, params)
+            unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict = classify_unassigned(unassigned_seq_dict,
+                                                                                             pb_to_freq_dict_t1,
+                                                                                             seq_to_clust_dict,
+                                                                                             k_mer_dict, params)
 
             unassigned_seq_list = [seq for seq, freq in sorted(unassigned_seq_dict.items(),
                                                                key=lambda x: x[1], reverse=True)]
@@ -306,6 +308,8 @@ if __name__ == '__main__':
             unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(unassigned_seq_list,
                                                                                        unassigned_seq_dict,
                                                                                        k_mer_dict, params)
+        else:
+            unassigned_pb_freq_dict = {}
 
         seq_to_clust_dict, pb_to_freq_dict = correct_insertions(insertions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
         seq_to_clust_dict, pb_to_freq_dict = correct_deletions(deletions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
@@ -317,7 +321,7 @@ if __name__ == '__main__':
                 writer.writerow([key, value])
 
         pb_to_freq_dict_list.append(pb_to_freq_dict_t0)
-        pb_to_freq_dict_t0 = pb_to_freq_dict_t1
+        pb_to_freq_dict_t0 = pb_to_freq_dict_t1.copy()
         print('Time Point ' + str(i) + ' was successfully classified. Results were saved to ' + filename[:-4] + '_seq_clust.csv \n')
         i += 1
 
