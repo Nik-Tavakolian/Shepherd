@@ -10,6 +10,8 @@ The program consists of two python scripts: shepherd_t0.py and shepherd_multi.py
 
 This script is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors. 
 
+**IMPORTANT NOTE:** Shepherd will try to estimate the error rate from the input file. However, since we are estimating a small probability we need a large number of input sequences to do so accurately. If your data has fewer than 10 000 sequences or if you observe unrealistic error rate estimates we suggest providing Shepherd with an error rate estimate using the optional input parameter **-e**.
+
 ### Inputs
 
 #### Required Inputs
