@@ -252,8 +252,8 @@ if __name__ == '__main__':
 
     if args.e == None:
         total_err_rate = estimate_rho(seq_list, seq_freq_dict, l, Nh)
-        if total_err_rate == 0:
-            raise ValueError('Error rate could not be estimated from the data. Please provide an error rate estimate.')
+        if total_err_rate == 0 or total_err_rate > 0.1:
+            raise ValueError('Error rate could not be reliably estimated from the data. Please provide an error rate estimate.')
     else:
         total_err_rate = args.e
 
