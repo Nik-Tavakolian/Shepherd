@@ -313,9 +313,10 @@ if __name__ == '__main__':
             unassigned_seq_list = [seq for seq, freq in sorted(unassigned_seq_dict.items(),
                                                                key=lambda x: x[1], reverse=True)]
 
+            unassigned_k_mer_dict = build_k_mer_dict(unassigned_seq_list, params[0], params[1], params[2], params[3])
             unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(unassigned_seq_list,
                                                                                        unassigned_seq_dict,
-                                                                                       k_mer_dict, params)
+                                                                                       unassigned_k_mer_dict, params)
         else:
             unassigned_pb_freq_dict = {}
 

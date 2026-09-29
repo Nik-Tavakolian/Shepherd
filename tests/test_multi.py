@@ -37,3 +37,21 @@ def test_later_time_points_find_barcodes_with_unshared_k_mer_combinations(tmp_pa
     labels = read_seq_clust(tmp_path / 't1_seq_clust.csv')
     assert labels[single_error] == labels[barcode]
     assert read_multi_freqs(tmp_path)[barcode] == [20, 21]
+
+
+def single_substitutions(seq):
+    return [seq[:i] + n + seq[i + 1:] for i in range(len(seq)) for n in 'ACGT' if n != seq[i]]
+
+
+def test_error_reads_of_an_emerging_barcode_are_merged_into_it(tmp_path, background):
+    emerging = 'ACGTTGCAACGTAGCTAGCA'
+    errors = single_substitutions(emerging)[:30]
+    write_counts(tmp_path / 't0.txt', background, {})
+    write_counts(tmp_path / 't1.txt', background, {emerging: 300, **{seq: 2 for seq in errors}})
+    write_counts(tmp_path / 't2.txt', background, {emerging: 600, **{seq: 2 for seq in errors}})
+    run_t0(tmp_path, 't0.txt')
+    run_multi(tmp_path, 't0.txt', ['t1.txt', 't2.txt'])
+
+    freqs = read_multi_freqs(tmp_path)
+    assert freqs[emerging] == [0, 360, 660]
+    assert not set(errors) & set(freqs), 'error sequences reported as lineages'
