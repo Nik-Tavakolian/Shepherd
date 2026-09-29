@@ -1,11 +1,9 @@
 import csv
-import math
 import pickle
 import time
 
-from scipy.stats import binom
-
 from shepherd.kmer_index import add_seq_to_k_mer_dict, build_k_mer_dict, get_candidates
+from shepherd.model import get_log_K
 from shepherd.single import cluster_reads
 
 
@@ -48,14 +46,6 @@ def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
                 )
 
             return closest_pb, min_dist
-
-
-def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
-
-    n_hat = max(int(f_c / p_no_err), f_c + f_n)
-    p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
-
-    return binom.logpmf(f_n, n_hat, p_est) + math.log(p_est) + logdenom
 
 
 def classify_reads(

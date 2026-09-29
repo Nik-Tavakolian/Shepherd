@@ -6,6 +6,7 @@ import time
 from scipy.stats import binom
 
 from shepherd.kmer_index import add_seq_to_k_mer_dict, get_candidates
+from shepherd.model import get_log_K
 
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
@@ -108,14 +109,6 @@ def find_q_p(eps, l):
                 < 0.5
             ):
                 return q, p
-
-
-def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
-
-    n_hat = max(int(f_c / p_no_err), f_c + f_n)
-    p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
-
-    return binom.logpmf(f_n, n_hat, p_est) + math.log(p_est) + logdenom
 
 
 def locate_mins(a):
