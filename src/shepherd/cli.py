@@ -8,8 +8,12 @@ shepherd_multi.py scripts.
 """
 
 import argparse
+import time
 
-from shepherd import __version__, multi, single
+from shepherd import __version__, multi
+from shepherd.clustering import cluster
+from shepherd.io import output_path, read_counts, write_barcode_counts, write_labels
+from shepherd.parameters import DEFAULT_LOG_BF_THRESHOLD, DEFAULT_N_TOP, estimate_parameters
 
 
 def build_parser():
@@ -20,25 +24,31 @@ def build_parser():
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     subparsers = parser.add_subparsers(dest='command', required=True, metavar='command')
 
-    cluster = subparsers.add_parser(
+    cluster_parser = subparsers.add_parser(
         'cluster',
         help='cluster barcode reads at a single time point',
         description='Cluster barcode reads at a single time point',
     )
-    cluster.add_argument('-f', action='store', type=str, required=True, help='Input file name')
-    cluster.add_argument('-l', action='store', type=int, required=True, help='Barcode length')
-    cluster.add_argument('-e', action='store', type=float, help='Substitution error rate estimate')
-    cluster.add_argument('-eps', action='store', type=int, help='Hamming distance threshold')
-    cluster.add_argument('-k', action='store', type=int, help='Substring length')
-    cluster.add_argument(
+    cluster_parser.add_argument(
+        '-f', action='store', type=str, required=True, help='Input file name'
+    )
+    cluster_parser.add_argument(
+        '-l', action='store', type=int, required=True, help='Barcode length'
+    )
+    cluster_parser.add_argument(
+        '-e', action='store', type=float, help='Substitution error rate estimate'
+    )
+    cluster_parser.add_argument('-eps', action='store', type=int, help='Hamming distance threshold')
+    cluster_parser.add_argument('-k', action='store', type=int, help='Substring length')
+    cluster_parser.add_argument(
         '-tau', action='store', type=int, help='Distance threshold for frequency 1 sequences'
     )
-    cluster.add_argument('-ft', action='store', type=int, help='Frequency threshold')
-    cluster.add_argument('-bft', action='store', type=float, help='Bayes factor threshold')
-    cluster.add_argument(
+    cluster_parser.add_argument('-ft', action='store', type=int, help='Frequency threshold')
+    cluster_parser.add_argument('-bft', action='store', type=float, help='Bayes factor threshold')
+    cluster_parser.add_argument(
         '-Nh', action='store', type=int, help='Number of sequences used for rho estimation'
     )
-    cluster.set_defaults(run=single.run)
+    cluster_parser.set_defaults(run=run_cluster)
 
     track = subparsers.add_parser(
         'track',
@@ -64,3 +74,37 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     args.run(args)
+
+
+def run_cluster(args: argparse.Namespace) -> None:
+    reads = read_counts(args.f, args.l)
+    start = time.time()
+    params = estimate_parameters(
+        reads.barcodes,
+        args.l,
+        error_rate=args.e,
+        epsilon=args.eps,
+        kmer_length=args.k,
+        tau=args.tau,
+        count_threshold=args.ft,
+        log_bf_threshold=DEFAULT_LOG_BF_THRESHOLD if args.bft is None else args.bft,
+        n_top=DEFAULT_N_TOP if args.Nh is None else args.Nh,
+    )
+    print('Shepherd Single Parameters:')
+    print('\t')
+    print('Sequence length: ' + str(params.barcode_length))
+    print('Substitution Error Rate Estimate: ' + str(params.error_rate))
+    print('epsilon: ' + str(params.epsilon))
+    print('tau: ' + str(params.tau))
+    print('f: ' + str(params.count_threshold))
+    print('Bayes Factor Threshold: ' + str(params.log_bf_threshold))
+    print('Substring Length: ' + str(params.kmer_length))
+    print('Number of Partitions: ' + str(params.n_partitions))
+    print('\t')
+
+    clustering = cluster(reads, params)
+    print('Clustering time: ' + str(time.time() - start))
+
+    params.save(output_path(args.f, '_params.json'))
+    write_labels(output_path(args.f, '_seq_clust.csv'), clustering.labels)
+    write_barcode_counts(output_path(args.f, '_pb_freq.csv'), clustering.barcode_counts)

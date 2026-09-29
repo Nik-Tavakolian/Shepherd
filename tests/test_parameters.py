@@ -9,7 +9,6 @@ from shepherd.parameters import (
     estimate_error_rate,
     estimate_parameters,
 )
-from shepherd.sequences import sort_by_count
 
 
 @pytest.mark.parametrize(
@@ -21,7 +20,7 @@ def test_kmer_length_matches_the_paper(epsilon, expected):
 
 
 def test_error_rate_estimate_is_close_to_the_simulated_rate(background):
-    estimate = estimate_error_rate(background, sort_by_count(background), 20, n_top=500)
+    estimate = estimate_error_rate(background, 20, n_top=500)
     assert estimate == pytest.approx(0.005, rel=0.05)
 
 

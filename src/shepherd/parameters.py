@@ -1,8 +1,9 @@
 """Shepherd's parameters and how they are chosen from the data (Supplementary Section 3)."""
 
+import heapq
 import json
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from functools import cached_property
 from pathlib import Path
@@ -11,7 +12,7 @@ from scipy.stats import binom
 
 from shepherd.errors import ShepherdError
 from shepherd.model import ErrorModel
-from shepherd.sequences import single_substitutions, sort_by_count
+from shepherd.sequences import single_substitutions
 
 DEFAULT_LOG_BF_THRESHOLD = -4.0
 DEFAULT_N_TOP = 500
@@ -84,7 +85,7 @@ def estimate_parameters(
         raise ShepherdError(f'the input contains no sequences of length {barcode_length}')
 
     if error_rate is None:
-        error_rate = estimate_error_rate(counts, sort_by_count(counts), barcode_length, n_top)
+        error_rate = estimate_error_rate(counts, barcode_length, n_top)
         if error_rate == 0 or error_rate > MAX_ESTIMATED_ERROR_RATE:
             raise ShepherdError(
                 f'the error rate could not be reliably estimated from the data (estimate: '
@@ -116,17 +117,16 @@ def estimate_parameters(
     )
 
 
-def estimate_error_rate(
-    counts: Mapping[str, int], sorted_seqs: Sequence[str], barcode_length: int, n_top: int
-) -> float:
+def estimate_error_rate(counts: Mapping[str, int], barcode_length: int, n_top: int) -> float:
     """Estimate the substitution error rate rho (Supplementary Section 3.A).
 
     The highest-count sequences are almost certainly true barcodes. With n0 their
     combined read count and n1 the combined read count of their single-nucleotide
     variants, rho = n1 / (n1 + l n0) (Eq. S17).
     """
-    # The n_top + 1 highest-count sequences are used, as in Shepherd 1.x.
-    top = sorted_seqs[: n_top + 1]
+    # The n_top + 1 highest-count sequences are used, as in Shepherd 1.x. Ties are
+    # broken by input order, as in sort_by_count().
+    top = heapq.nlargest(n_top + 1, counts, key=counts.__getitem__)
     n0 = sum(counts[seq] for seq in top)
     n1 = sum(counts.get(variant, 0) for seq in top for variant in single_substitutions(seq))
     ratio = n1 / (n0 * barcode_length)

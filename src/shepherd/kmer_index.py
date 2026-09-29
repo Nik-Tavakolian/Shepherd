@@ -2,6 +2,10 @@
 
 from collections.abc import Iterator
 from itertools import combinations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from shepherd.parameters import Parameters
 
 KmerCombination = tuple[tuple[int, str], ...]
 
@@ -35,6 +39,10 @@ class KmerIndex:
         ]
         self._combination_size = n_partitions - epsilon
         self._sequences_by_combination: dict[KmerCombination, set[str]] = {}
+
+    @classmethod
+    def for_parameters(cls, params: 'Parameters') -> 'KmerIndex':
+        return cls(params.barcode_length, params.kmer_length, params.n_partitions, params.epsilon)
 
     def _combinations(self, seq: str) -> Iterator[KmerCombination]:
         k = self._kmer_length

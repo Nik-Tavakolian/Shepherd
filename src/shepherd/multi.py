@@ -1,9 +1,9 @@
 import csv
 import time
 
+from shepherd.clustering import cluster_reads
 from shepherd.kmer_index import KmerIndex
 from shepherd.parameters import Parameters
-from shepherd.single import cluster_reads
 
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
@@ -164,12 +164,6 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
     return unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict
 
 
-def cluster_unassigned(seq_list, seq_to_freq_dict, params):
-    """Cluster the unassigned reads with the single time point procedure."""
-
-    return cluster_reads(seq_list, seq_to_freq_dict, params)
-
-
 def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
     for seq, freq in deletions_dict.items():
         for i in range(l):
@@ -280,16 +274,7 @@ def run(args):
                 unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict, index, params
             )
 
-            unassigned_seq_list = [
-                seq
-                for seq, freq in sorted(
-                    unassigned_seq_dict.items(), key=lambda x: x[1], reverse=True
-                )
-            ]
-
-            unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(
-                unassigned_seq_list, unassigned_seq_dict, params
-            )
+            unassigned_pb_freq_dict = cluster_reads(unassigned_seq_dict, params).barcode_counts
         else:
             unassigned_pb_freq_dict = {}
 
