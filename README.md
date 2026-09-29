@@ -1,5 +1,9 @@
 # Shepherd
 
+[![CI](https://github.com/Nik-Tavakolian/Shepherd/actions/workflows/ci.yml/badge.svg)](https://github.com/Nik-Tavakolian/Shepherd/actions/workflows/ci.yml)
+[![Paper](https://img.shields.io/badge/Bioinformatics-10.1093%2Fbioinformatics%2Fbtac395-blue)](https://doi.org/10.1093/bioinformatics/btac395)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
+
 ## Getting Started
 
 Shepherd is a Python program for correcting substitution errors and single insertion and deletion errors in DNA barcode reads. These errors occur during PCR amplification and sequencing of the DNA barcodes. Shepherd is cross-platform and runs on any computer with Python 3.10 or later.
@@ -95,3 +99,22 @@ This command is designed to use the the clustering from the first time point, i.
 
 **Command line usage example:**\
 <code>shepherd track -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
+
+## Development
+
+Install the package in editable mode with the development tools, and set up the pre-commit hooks:
+
+```bash
+pip install -e ".[dev]"
+pre-commit install
+```
+
+Run the tests, the linter and the type checker:
+
+```bash
+pytest
+ruff check .
+mypy
+```
+
+The tests include golden-output tests (`tests/test_golden.py`) that check that the results on a fixed synthetic data set are unchanged. If a change of results is intended, re-record them with `python tests/golden/make_golden.py` and explain the change in the commit message.
