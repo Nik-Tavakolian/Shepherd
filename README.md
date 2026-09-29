@@ -34,9 +34,9 @@ This command is designed to cluster the sequencing reads from a single time poin
 
 These inputs must be provided to run the command.
 
-**-l:** (integer) The correct barcode length.
+**-l, --length:** (integer) The correct barcode length.
 
-**-f:** (.txt file) The input file with a sequence and a sequence count in each row, separated by whitespace. Currently this is the only input file format supported by Shepherd. Only sequences in the file with lengths l (correct barcode length), l + 1 (single insertion errors) and l - 1 (single deletion errors) will be processed by Shepherd.
+**-f, --input:** (.txt file) The input file with a sequence and a sequence count in each row, separated by whitespace. Currently this is the only input file format supported by Shepherd. Only sequences in the file with lengths l (correct barcode length), l + 1 (single insertion errors) and l - 1 (single deletion errors) will be processed by Shepherd.
 
     Example file:   testdata_t0.txt
 
@@ -49,19 +49,19 @@ These inputs must be provided to run the command.
 
 These inputs are optional and we recommend using the default values determined by Shepherd.
 
-**-e:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a floating point number, e.g. 0.01 if the estimated error rate is 1%. If not provided this parameter is automatically determined based on the input data.
+**-e, --error-rate:** (float) An estimate of the substitution error rate of the sequencing protocol used to generate the input data. This is a floating point number, e.g. 0.01 if the estimated error rate is 1%. If not provided this parameter is automatically determined based on the input data.
 
-**-eps:** (integer) The maximum Hamming distance considered for merging two sequencing into the same cluster. If not provided this parameter is automatically determined based on the input data.
+**-eps, --epsilon:** (integer) The maximum Hamming distance considered for merging two sequences into the same cluster. If not provided this parameter is automatically determined based on the input data.
 
-**-k:** (integer) The substring length used to divide the sequences into partitions. If not provided this parameter is automatically determined based on the input data.
+**-k, --kmer-length:** (integer) The substring length used to divide the sequences into partitions. If not provided this parameter is automatically determined based on the input data.
 
-**-tau:** (integer) A distance threshold for frequency 1 sequences that determines if they should be merged with another sequence. If a frequency 1 sequence has Hamming distance less than or equal to this threshold to a candidate sequence it will be merged. If not provided this parameter is automatically determined based on the input data.
+**-tau, --tau:** (integer) A distance threshold for frequency 1 sequences that determines if they should be merged with another sequence. If a frequency 1 sequence has Hamming distance less than or equal to this threshold to a candidate sequence it will be merged. If not provided this parameter is automatically determined based on the input data.
 
-**-ft:** (integer) A frequency threshold for defining true barcodes. Any sequence with a frequency higher than this threshold is defined as a true barcode. If not provided this parameter is automatically determined based on the input data.
+**-ft, --count-threshold:** (integer) A count threshold for defining true barcodes. Any sequence with at least this many reads is a putative barcode. If not provided this parameter is automatically determined based on the input data.
 
-**-bft:** (float) The threshold for log Bayes factor. The default value is -4.
+**-bft, --log-bf-threshold:** (float) The threshold for log Bayes factor. The default value is -4.
 
-**-Nh:** (integer) Number of sequences used for estimation of the substitution error rate. The default value is min(number of sequences, 500).
+**-Nh, --n-top:** (integer) Number of high-count sequences used for estimation of the substitution error rate. The default value is 500 (see Implementation notes).
 
 ### Outputs
 
@@ -81,11 +81,11 @@ This command is designed to use the the clustering from the first time point, i.
 
 ### Inputs
 
-**-f0:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.
+**-f0, --first:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.
 
-**-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
+**-fn, --later:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
 
-**-o:** (string) The prefix of the final output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
+**-o, --output:** (string) The prefix of the final output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
 
 ### Outputs
 
@@ -97,6 +97,17 @@ This command is designed to use the the clustering from the first time point, i.
 
 **Command line usage example:**\
 <code>shepherd track -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
+
+## Implementation notes
+
+The code follows the method described in the paper and its Supplementary Material, with these differences. The first four do not change the results.
+
+- **The k-mer Index only contains putative barcodes.** The paper builds the index from all sequences and then keeps the putative barcodes among the neighbours of a sequence (Algorithm S1). Since sequences are processed in descending order of read count, `cluster_reads` instead adds each sequence to the index when it becomes a putative barcode, which gives the same neighbours directly with a much smaller index.
+- **The log Bayes factor** is computed with `math.lgamma` instead of `scipy.stats.binom.logpmf`. The formula is the same; it avoids SciPy's overhead per call.
+- **Ties.** A sequence at the same distance from two putative barcodes with the same read count joins the alphabetically first one. Shepherd 1.x picked one arbitrarily, so the result could change between runs.
+- **Parameter selection** (Supplementary Section 3) classifies a sequence as a true barcode when ln K < 0, regardless of the `-bft` threshold used during clustering. The error rate is estimated from the 501 (`-Nh` + 1) highest-count sequences, as in Shepherd 1.x.
+- **Sequences at distance 1** from their closest putative barcode are merged without the Bayesian test if they have fewer reads than the count threshold. This shortcut is not described in the paper and saves most of the tests. It can only differ from the full test when two true barcodes one substitution apart both have fewer reads than the count threshold, which is rare for random barcodes.
+- **Emerging barcodes in `shepherd track`.** A cluster is not tested for emerging barcodes if one of its sequences has more reads than the putative barcode itself at that time point.
 
 ## Development
 
