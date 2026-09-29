@@ -1,0 +1,7 @@
+# Commits that only reformat code. Use with
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Normalize line endings to LF
+ae5d9b7c43b25ee4773649fad438ead23dea9e4e
+# Format code with ruff
+88cad73ae15b4a0869ef13f3e928a314732e6213

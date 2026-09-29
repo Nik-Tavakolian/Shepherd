@@ -1,10 +1,9 @@
-from itertools import combinations
-import pickle
-import json
-import time
-import math
-import sys
 import csv
+import math
+import pickle
+import time
+from itertools import combinations
+
 from scipy.stats import binom
 
 
@@ -179,7 +178,7 @@ def cluster_reads(
         if f_c < f:
             candidates = get_candidates(S_c, k_mer_dict, q, l, p, eps)
             if candidates:
-                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict.keys()]
+                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict]
                 if pb_neighbors:
                     min_dist, indices = locate_mins(
                         [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
@@ -248,7 +247,7 @@ def run(args):
     deletions_dict = {}
     insertions_dict = {}
     seq_freq_dict = {}
-    with open(filename, 'r') as a_file:
+    with open(filename) as a_file:
         for line in a_file:
             seq, freq = line.split()
             seq_len = len(seq)
@@ -265,16 +264,17 @@ def run(args):
         seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)
     ]
 
-    if args.Nh == None:
+    if args.Nh is None:
         Nh = 500
     else:
         Nh = args.Nh
 
-    if args.e == None:
+    if args.e is None:
         total_err_rate = estimate_rho(seq_list, seq_freq_dict, l, Nh)
         if total_err_rate == 0 or total_err_rate > 0.1:
             raise ValueError(
-                'Error rate could not be reliably estimated from the data. Please provide an error rate estimate.'
+                'Error rate could not be reliably estimated from the data. '
+                'Please provide an error rate estimate.'
             )
     else:
         total_err_rate = args.e
@@ -285,28 +285,28 @@ def run(args):
     logdenom = l * math.log(4) + math.log(highest_freq)
     p_no_err = binom.pmf(0, l, total_err_rate)
 
-    if args.eps == None:
+    if args.eps is None:
         eps = find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom)
     else:
         eps = args.eps
 
-    if args.tau == None:
+    if args.tau is None:
         tau = find_tau(l, p_no_err, total_err_rate, logdenom)
     else:
         tau = args.tau
 
-    if args.ft == None:
+    if args.ft is None:
         f = find_f(l, highest_freq, p_no_err, total_err_rate, logdenom)
     else:
         f = args.ft
 
-    if args.k == None:
+    if args.k is None:
         q, p = find_q_p(eps, l)
     else:
         q = args.k
         p = l // q + int(l % q > 0)
 
-    if args.bft == None:
+    if args.bft is None:
         bft = -4
     else:
         bft = args.bft

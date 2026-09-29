@@ -31,11 +31,7 @@ def simulate_counts(n_barcodes, error_rate, seed):
     alphabet = np.frombuffer(b'ACGT', dtype=np.uint8)
     seqs = alphabet[reads].view(f'S{BARCODE_LENGTH}').ravel()
     unique_seqs, seq_counts = np.unique(seqs, return_counts=True)
-    return {seq.decode(): int(count) for seq, count in zip(unique_seqs, seq_counts)}
-
-
-def hamming(seq_1, seq_2):
-    return sum(n_1 != n_2 for n_1, n_2 in zip(seq_1, seq_2))
+    return {seq.decode(): int(count) for seq, count in zip(unique_seqs, seq_counts, strict=True)}
 
 
 @pytest.fixture(scope='session')

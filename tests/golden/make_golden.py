@@ -77,13 +77,13 @@ def simulate_time_series(seed=2022, n_barcodes=500, length=20, error_rate=0.005,
             else:
                 seqs[i] = seqs[i][:pos] + 'ACGT'[rng.integers(4)] + seqs[i][pos:]
         unique_seqs, seq_counts = np.unique(seqs, return_counts=True)
-        series.append(dict(zip(unique_seqs.tolist(), seq_counts.tolist())))
+        series.append(dict(zip(unique_seqs.tolist(), seq_counts.tolist(), strict=True)))
     return series
 
 
 def write_inputs():
     DATA_DIR.mkdir(exist_ok=True)
-    for filename, counts in zip(TIME_POINTS, simulate_time_series()):
+    for filename, counts in zip(TIME_POINTS, simulate_time_series(), strict=True):
         with gzip.open(DATA_DIR / (filename + '.gz'), 'wt') as fh:
             fh.writelines(f'{seq}\t{count}\n' for seq, count in counts.items())
 

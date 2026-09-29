@@ -1,9 +1,9 @@
-from itertools import combinations
-import pickle
-import json
-import time
 import csv
 import math
+import pickle
+import time
+from itertools import combinations
+
 from scipy.stats import binom
 
 
@@ -120,7 +120,7 @@ def classify_reads(
                 closest_pb, dist = out
                 seq_to_dist_dict_t1[seq] = dist
                 if closest_pb:
-                    if not closest_pb in pb_to_freq_dict_t1:
+                    if closest_pb not in pb_to_freq_dict_t1:
                         pb_to_freq_dict_t1[closest_pb] = freq
                         pb_to_seqs_dict_t1[closest_pb] = [seq]
                         seq_to_clust_dict_t1[closest_pb] = i
@@ -158,7 +158,7 @@ def separate_emerging(
     reassigned_seqs = set()
     for pb, seqs in pb_to_seqs_dict_t1.items():
         for i, seq in enumerate(seqs):
-            if not pb in seq_freq_dict:
+            if pb not in seq_freq_dict:
                 break
             if seq in reassigned_seqs:
                 continue
@@ -220,7 +220,7 @@ def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
         if f_c < f:
             candidates = get_candidates(S_c, k_mer_dict, q, l, p, eps)
             if candidates:
-                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict.keys()]
+                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict]
                 if pb_neighbors:
                     min_dist, indices = locate_mins(
                         [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
@@ -285,12 +285,12 @@ def run(args):
     f0_prefix = args.f0[:-4]
     multi_filenames = args.fn
 
-    if args.o == None:
+    if args.o is None:
         o_fn_prefix = 'multi_freqs'
     else:
         o_fn_prefix = args.o
 
-    with open(f0_prefix + '_pb_freq.csv', 'r') as handle:
+    with open(f0_prefix + '_pb_freq.csv') as handle:
         pb_to_freq_dict_t0 = {}
         i = 0
         for line in handle:
@@ -317,7 +317,7 @@ def run(args):
         insertions_dict = {}
         seq_freq_dict = {}
         l = params[1]
-        with open(filename, 'r') as a_file:
+        with open(filename) as a_file:
             for line in a_file:
                 seq, freq = line.split()
                 seq_len = len(seq)
@@ -409,7 +409,7 @@ def run(args):
         time_points = ['time_point_' + str(i) for i in range(1, len(pb_to_freq_dict_list) + 1)]
         col_names.extend(time_points)
         writer.writerow(col_names)
-        pb_set = set([pb for pb_dict in pb_to_freq_dict_list for pb in pb_dict.keys()])
+        pb_set = set([pb for pb_dict in pb_to_freq_dict_list for pb in pb_dict])
         for seq in pb_set:
             line = [seq]
             for pb_to_freq_dict in pb_to_freq_dict_list:

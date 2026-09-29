@@ -20,7 +20,7 @@ classifiers = [
 dependencies = ["scipy>=1.8"]
 
 [project.optional-dependencies]
-dev = ["numpy", "pytest>=7"]
+dev = ["mypy", "numpy", "pre-commit", "pytest>=7", "ruff"]
 
 [project.scripts]
 shepherd = "shepherd.cli:main"
@@ -39,5 +39,34 @@ testpaths = ["tests"]
 line-length = 100
 src = ["src", "tests"]
 
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Temporary: these findings (the variable name `l`, positional parameter unpacking,
+# hand-written counters) disappear when the two original modules are split up and
+# rewritten. Remove this section once that is done.
+"src/shepherd/{single,multi}.py" = ["E741", "RUF059", "B905", "SIM108", "SIM113", "B007"]
+
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.mypy]
+files = ["src", "tests"]
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
+ignore_missing_imports = true

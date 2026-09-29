@@ -20,7 +20,7 @@ This provides the `shepherd` command with two subcommands, `shepherd cluster` an
 
 ### shepherd cluster
 
-This command is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors. 
+This command is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors.
 
 **IMPORTANT NOTE:** Shepherd will try to estimate the error rate from the input file. However, since we are estimating a small probability we need a large number of input sequences to do so accurately. If your data has fewer than 10 000 sequences or if you observe unrealistic error rate estimates we suggest providing Shepherd with an error rate estimate using the optional input parameter **-e**.
 
@@ -35,12 +35,12 @@ These inputs must be provided to run the command.
 **-f:** (.txt file) The input file with a sequence and a sequence count in each row, separated by whitespace. Currently this is the only input file format supported by Shepherd. Only sequences in the file with lengths l (correct barcode length), l + 1 (single insertion errors) and l - 1 (single deletion errors) will be processed by Shepherd.
 
     Example file:   testdata_t0.txt
-    
+
                     TCCCTTACTAATCGAAGAAG	5
-                    ATAGTATGGATCTGGACCGC	10	
+                    ATAGTATGGATCTGGACCGC	10
                     ATCCAGTGCTAGTTCAACTC	3
                     AATTTTGGAACAGGCCGTAG	200
-    
+
 #### Optional Inputs
 
 These inputs are optional and we recommend using the default values determined by Shepherd.
@@ -66,7 +66,7 @@ These inputs are optional and we recommend using the default values determined b
 **_pb_freq.csv:** A .csv file where the putative barcodes are in the first column and the estimated counts are in the second column.
 
 **_index:** The k-mer Index stored in the pickle format.
-                                                                                             
+
 **_params:** The parameters used to run the command stored in the pickle format.
 
 ### Usage
@@ -75,11 +75,11 @@ These inputs are optional and we recommend using the default values determined b
 
 ### shepherd track
 
-This command is designed to use the the clustering from the first time point, i.e., the outputs of shepherd cluster, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that shepherd cluster must be run on the first time point in the same folder before running shepherd track. 
+This command is designed to use the the clustering from the first time point, i.e., the outputs of shepherd cluster, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that shepherd cluster must be run on the first time point in the same folder before running shepherd track.
 
 ### Inputs
 
-**-f0:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.                                             
+**-f0:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.
 
 **-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
 
