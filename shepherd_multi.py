@@ -32,6 +32,15 @@ def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
 
     return k_mer_dict
 
+def build_k_mer_dict(seq_list, q, l, p, eps):
+    # Unlike create_k_mer_dict in shepherd_t0.py, k-mer combinations that occur in a
+    # single sequence are kept, since the index is queried with sequences outside seq_list.
+    k_mer_dict = {}
+    for seq in seq_list:
+        add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
+
+    return k_mer_dict
+
 def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
     candidates = set()
@@ -244,9 +253,6 @@ if __name__ == '__main__':
     else:
         o_fn_prefix = args.o
 
-    with open(f0_prefix + '_index', 'rb') as handle:
-        k_mer_dict = pickle.load(handle)
-
     with open(f0_prefix + '_pb_freq.csv', 'r') as handle:
         pb_to_freq_dict_t0 = {}
         i = 0
@@ -258,6 +264,8 @@ if __name__ == '__main__':
 
     with open(f0_prefix + '_params', 'rb') as f:
         params = pickle.load(f)
+
+    k_mer_dict = build_k_mer_dict(pb_to_freq_dict_t0, params[0], params[1], params[2], params[3])
 
     print('Starting classification')
     print('\t')
