@@ -3,6 +3,7 @@
 Tavakolian et al., Bioinformatics 38(15), 3710-3716 (2022),
 https://doi.org/10.1093/bioinformatics/btac395
 """
+
 from importlib.metadata import PackageNotFoundError, version
 
 try:

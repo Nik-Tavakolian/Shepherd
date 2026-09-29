@@ -1,4 +1,5 @@
 """Regression tests for multiple time point mode (shepherd track)."""
+
 from conftest import read_multi_freqs, read_seq_clust, run_cluster, run_track, write_counts
 
 from shepherd.multi import add_seq_to_k_mer_dict
@@ -41,7 +42,7 @@ def test_later_time_points_find_barcodes_with_unshared_k_mer_combinations(tmp_pa
 
 
 def single_substitutions(seq):
-    return [seq[:i] + n + seq[i + 1:] for i in range(len(seq)) for n in 'ACGT' if n != seq[i]]
+    return [seq[:i] + n + seq[i + 1 :] for i in range(len(seq)) for n in 'ACGT' if n != seq[i]]
 
 
 def test_error_reads_of_an_emerging_barcode_are_merged_into_it(tmp_path, background):
@@ -60,7 +61,7 @@ def test_error_reads_of_an_emerging_barcode_are_merged_into_it(tmp_path, backgro
 
 def test_separating_an_emerging_barcode_counts_each_read_once(tmp_path, background):
     barcode = 'CCCCCCCCCCGGGGGGGGGG'
-    emerging = 'CCCCCCCCCCGGGGGGGGTT'   # distance 2 from barcode
+    emerging = 'CCCCCCCCCCGGGGGGGGTT'  # distance 2 from barcode
     near_emerging = 'CCCCCCCCCCGGGGGGGTTT'  # distance 3 from barcode, 1 from emerging
     write_counts(tmp_path / 't0.txt', background, {barcode: 1000})
     write_counts(tmp_path / 't1.txt', background, {barcode: 1000, emerging: 200, near_emerging: 50})

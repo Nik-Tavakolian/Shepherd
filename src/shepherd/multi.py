@@ -6,6 +6,7 @@ import csv
 import math
 from scipy.stats import binom
 
+
 def trunc_ham_dist(seq_1, seq_2, d, n):
 
     h = 0
@@ -17,9 +18,10 @@ def trunc_ham_dist(seq_1, seq_2, d, n):
 
     return h
 
+
 def get_k_mers(seq, q, l):
 
-    return [(int(j / q) + 1, seq[j: j + q]) for j in range(0, l, q)]
+    return [(int(j / q) + 1, seq[j : j + q]) for j in range(0, l, q)]
 
 
 def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
@@ -31,6 +33,7 @@ def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
 
     return k_mer_dict
 
+
 def build_k_mer_dict(seq_list, q, l, p, eps):
     # Unlike create_k_mer_dict in shepherd_t0.py, k-mer combinations that occur in a
     # single sequence are kept, since the index is queried with sequences outside seq_list.
@@ -39,6 +42,7 @@ def build_k_mer_dict(seq_list, q, l, p, eps):
         add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
 
     return k_mer_dict
+
 
 def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
@@ -49,11 +53,11 @@ def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
     return candidates
 
+
 def locate_mins(a):
 
     smallest = min(a)
-    return smallest, [index for index, element in enumerate(a)
-                      if smallest == element]
+    return smallest, [index for index, element in enumerate(a) if smallest == element]
 
 
 def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
@@ -62,24 +66,32 @@ def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
     if candidates:
         pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict_t0]
         if pb_neighbors:
-            min_dist, indices = locate_mins([trunc_ham_dist(seq, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors])
+            min_dist, indices = locate_mins(
+                [trunc_ham_dist(seq, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
+            )
             if min_dist == l:
                 return None
             if len(indices) == 1:
                 closest_pb = pb_neighbors[indices[0]]
             else:
-                closest_pb = max([pb_neighbors[j] for j in indices], key=lambda x: pb_to_freq_dict_t0[x])
+                closest_pb = max(
+                    [pb_neighbors[j] for j in indices], key=lambda x: pb_to_freq_dict_t0[x]
+                )
 
             return closest_pb, min_dist
 
+
 def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 
-    n_hat = max(int(f_c/p_no_err), f_c + f_n)
-    p_est = (total_err_rate/3)**d * (1 - total_err_rate)**(l - d)
+    n_hat = max(int(f_c / p_no_err), f_c + f_n)
+    p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
 
     return binom.logpmf(f_n, n_hat, p_est) + math.log(p_est) + logdenom
 
-def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params):
+
+def classify_reads(
+    seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
+):
 
     q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     unassigned_seqs_dict = {}
@@ -120,11 +132,26 @@ def classify_reads(seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t
             else:
                 unassigned_seqs_dict[seq] = freq
 
-    return pb_to_freq_dict_t0, pb_to_freq_dict_t1, seq_to_clust_dict_t1, pb_to_seqs_dict_t1, seq_to_dist_dict_t1, \
-           unassigned_seqs_dict, k_mer_dict
+    return (
+        pb_to_freq_dict_t0,
+        pb_to_freq_dict_t1,
+        seq_to_clust_dict_t1,
+        pb_to_seqs_dict_t1,
+        seq_to_dist_dict_t1,
+        unassigned_seqs_dict,
+        k_mer_dict,
+    )
 
-def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, pb_to_seqs_dict_t1,
-                      seq_to_dist_dict_t1, k_mer_dict, params):
+
+def separate_emerging(
+    pb_to_freq_dict_t1,
+    seq_freq_dict,
+    seq_to_clust_dict_t1,
+    pb_to_seqs_dict_t1,
+    seq_to_dist_dict_t1,
+    k_mer_dict,
+    params,
+):
 
     q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     id_count = max(seq_to_clust_dict_t1.values())
@@ -147,7 +174,7 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
                 pb_to_freq_dict_t1[pb] -= f_c
                 seq_to_clust_dict_t1[seq] = id_count
                 k_mer_dict = add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
-                for s in seqs[i + 1:]:
+                for s in seqs[i + 1 :]:
                     if s in reassigned_seqs:
                         continue
                     f_c_new = seq_freq_dict[s]
@@ -163,12 +190,16 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
 
     return pb_to_freq_dict_t1, seq_to_clust_dict_t1, k_mer_dict
 
-def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict, k_mer_dict, params):
+
+def classify_unassigned(
+    unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict, k_mer_dict, params
+):
 
     unassigned_seq_dict_copy = unassigned_seq_dict.copy()
     for seq_u, f_u in unassigned_seq_dict_copy.items():
-        out = get_closest_pb(seq_u, pb_to_freq_dict, k_mer_dict,
-                                          params[0], params[1], params[2], params[3])
+        out = get_closest_pb(
+            seq_u, pb_to_freq_dict, k_mer_dict, params[0], params[1], params[2], params[3]
+        )
         if out:
             closest_pb, _ = out
             if closest_pb:
@@ -177,6 +208,7 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
                 del unassigned_seq_dict[seq_u]
 
     return unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict
+
 
 def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
 
@@ -190,12 +222,15 @@ def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
             if candidates:
                 pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict.keys()]
                 if pb_neighbors:
-                    min_dist, indices = locate_mins([trunc_ham_dist(S_c, pb_neighbor, eps, l)
-                                                     for pb_neighbor in pb_neighbors])
+                    min_dist, indices = locate_mins(
+                        [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
+                    )
                     if len(indices) == 1:
                         S_b = pb_neighbors[indices[0]]
                     else:
-                        S_b = max([pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x])
+                        S_b = max(
+                            [pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x]
+                        )
                     if min_dist != l:
                         if (f_c == 1 and min_dist <= tau) or min_dist == 1:
                             seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
@@ -214,6 +249,7 @@ def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
 
     return seq_to_clust_dict, pb_to_freq_dict
 
+
 def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
     for seq, freq in deletions_dict.items():
         for i in range(l):
@@ -229,17 +265,19 @@ def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     return seq_to_clust_dict, pb_to_freq_dict
 
+
 def correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     for seq, freq in insertions_dict.items():
         for i in range(l + 1):
-            corrected_seq = seq[:i] + seq[i + 1:]
+            corrected_seq = seq[:i] + seq[i + 1 :]
             if corrected_seq in pb_to_freq_dict:
                 pb_to_freq_dict[corrected_seq] += freq
                 seq_to_clust_dict[seq] = seq_to_clust_dict[corrected_seq]
                 break
 
     return seq_to_clust_dict, pb_to_freq_dict
+
 
 def run(args):
     """Run ``shepherd track`` with arguments parsed by shepherd.cli."""
@@ -290,37 +328,58 @@ def run(args):
                 if seq_len == l + 1:
                     insertions_dict[seq] = int(freq)
 
-        seq_list = [seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)]
-        pb_to_freq_dict_t0, pb_to_freq_dict_t1, seq_to_clust_dict, \
-        pb_to_seqs_dict, seq_to_dist_dict, unassigned_seq_dict, k_mer_dict = classify_reads(seq_list,
-                                                                                seq_freq_dict,
-                                                                                k_mer_dict,
-                                                                                pb_to_freq_dict_t0,
-                                                                                unassigned_pb_freq_dict,
-                                                                                params)
+        seq_list = [
+            seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)
+        ]
+        (
+            pb_to_freq_dict_t0,
+            pb_to_freq_dict_t1,
+            seq_to_clust_dict,
+            pb_to_seqs_dict,
+            seq_to_dist_dict,
+            unassigned_seq_dict,
+            k_mer_dict,
+        ) = classify_reads(
+            seq_list, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
+        )
 
-        pb_to_freq_dict_t1, seq_to_clust_dict, k_mer_dict = separate_emerging(pb_to_freq_dict_t1, seq_freq_dict,
-                                                                           seq_to_clust_dict, pb_to_seqs_dict,
-                                                                           seq_to_dist_dict, k_mer_dict, params)
+        pb_to_freq_dict_t1, seq_to_clust_dict, k_mer_dict = separate_emerging(
+            pb_to_freq_dict_t1,
+            seq_freq_dict,
+            seq_to_clust_dict,
+            pb_to_seqs_dict,
+            seq_to_dist_dict,
+            k_mer_dict,
+            params,
+        )
 
         if unassigned_seq_dict:
-            unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict = classify_unassigned(unassigned_seq_dict,
-                                                                                             pb_to_freq_dict_t1,
-                                                                                             seq_to_clust_dict,
-                                                                                             k_mer_dict, params)
+            unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict = classify_unassigned(
+                unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict, k_mer_dict, params
+            )
 
-            unassigned_seq_list = [seq for seq, freq in sorted(unassigned_seq_dict.items(),
-                                                               key=lambda x: x[1], reverse=True)]
+            unassigned_seq_list = [
+                seq
+                for seq, freq in sorted(
+                    unassigned_seq_dict.items(), key=lambda x: x[1], reverse=True
+                )
+            ]
 
-            unassigned_k_mer_dict = build_k_mer_dict(unassigned_seq_list, params[0], params[1], params[2], params[3])
-            unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(unassigned_seq_list,
-                                                                                       unassigned_seq_dict,
-                                                                                       unassigned_k_mer_dict, params)
+            unassigned_k_mer_dict = build_k_mer_dict(
+                unassigned_seq_list, params[0], params[1], params[2], params[3]
+            )
+            unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(
+                unassigned_seq_list, unassigned_seq_dict, unassigned_k_mer_dict, params
+            )
         else:
             unassigned_pb_freq_dict = {}
 
-        seq_to_clust_dict, pb_to_freq_dict = correct_insertions(insertions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
-        seq_to_clust_dict, pb_to_freq_dict = correct_deletions(deletions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l)
+        seq_to_clust_dict, pb_to_freq_dict = correct_insertions(
+            insertions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l
+        )
+        seq_to_clust_dict, pb_to_freq_dict = correct_deletions(
+            deletions_dict, pb_to_freq_dict_t1, seq_to_clust_dict, l
+        )
 
         with open(filename[:-4] + '_seq_clust.csv', 'w', newline='') as res:
             writer = csv.writer(res)
@@ -330,7 +389,13 @@ def run(args):
 
         pb_to_freq_dict_list.append(pb_to_freq_dict_t0)
         pb_to_freq_dict_t0 = pb_to_freq_dict_t1.copy()
-        print('Time Point ' + str(i) + ' was successfully classified. Results were saved to ' + filename[:-4] + '_seq_clust.csv \n')
+        print(
+            'Time Point '
+            + str(i)
+            + ' was successfully classified. Results were saved to '
+            + filename[:-4]
+            + '_seq_clust.csv \n'
+        )
         i += 1
 
     pb_to_freq_dict_list.append(pb_to_freq_dict_t1)
@@ -339,7 +404,7 @@ def run(args):
     print('Classification time: ' + str(end - start))
 
     with open(o_fn_prefix + '.csv', 'w', newline='') as result:
-        writer = csv.writer(result, delimiter=",")
+        writer = csv.writer(result, delimiter=',')
         col_names = ['barcode']
         time_points = ['time_point_' + str(i) for i in range(1, len(pb_to_freq_dict_list) + 1)]
         col_names.extend(time_points)

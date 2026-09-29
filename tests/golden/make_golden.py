@@ -7,6 +7,7 @@ change in the commit message.
     python tests/golden/make_golden.py            # re-record outputs
     python tests/golden/make_golden.py --inputs   # also re-simulate inputs
 """
+
 import argparse
 import gzip
 import shutil
@@ -30,9 +31,13 @@ SINGLE_SCENARIOS = [
     ('k3', 't0_k3.txt', ['-e', '0.01', '-k', '3']),
 ]
 OUTPUT_FILES = [
-    't0_seq_clust.csv', 't0_pb_freq.csv',
-    't0_k3_seq_clust.csv', 't0_k3_pb_freq.csv',
-    't1_seq_clust.csv', 't2_seq_clust.csv', 'multi_freqs.csv',
+    't0_seq_clust.csv',
+    't0_pb_freq.csv',
+    't0_k3_seq_clust.csv',
+    't0_k3_pb_freq.csv',
+    't1_seq_clust.csv',
+    't2_seq_clust.csv',
+    'multi_freqs.csv',
 ]
 
 
@@ -68,7 +73,7 @@ def simulate_time_series(seed=2022, n_barcodes=500, length=20, error_rate=0.005,
         for i in np.nonzero(rng.random(len(seqs)) < indel_rate)[0]:
             pos = rng.integers(length)
             if rng.random() < 0.5:
-                seqs[i] = seqs[i][:pos] + seqs[i][pos + 1:]
+                seqs[i] = seqs[i][:pos] + seqs[i][pos + 1 :]
             else:
                 seqs[i] = seqs[i][:pos] + 'ACGT'[rng.integers(4)] + seqs[i][pos:]
         unique_seqs, seq_counts = np.unique(seqs, return_counts=True)
@@ -86,7 +91,10 @@ def write_inputs():
 def copy_inputs(workdir):
     """Decompress the golden inputs into workdir."""
     for filename in TIME_POINTS:
-        with gzip.open(DATA_DIR / (filename + '.gz'), 'rt') as src, open(Path(workdir) / filename, 'w') as dst:
+        with (
+            gzip.open(DATA_DIR / (filename + '.gz'), 'rt') as src,
+            open(Path(workdir) / filename, 'w') as dst,
+        ):
             shutil.copyfileobj(src, dst)
     shutil.copy(Path(workdir) / 't0.txt', Path(workdir) / 't0_k3.txt')
 
@@ -102,12 +110,17 @@ def write_outputs():
     with tempfile.TemporaryDirectory() as workdir:
         run_all_scenarios(workdir)
         for filename in OUTPUT_FILES:
-            with open(Path(workdir) / filename, 'rb') as src, gzip.open(DATA_DIR / (filename + '.gz'), 'wb') as dst:
+            with (
+                open(Path(workdir) / filename, 'rb') as src,
+                gzip.open(DATA_DIR / (filename + '.gz'), 'wb') as dst,
+            ):
                 shutil.copyfileobj(src, dst)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument('--inputs', action='store_true', help='also re-simulate the input files')
     if parser.parse_args().inputs:
         write_inputs()

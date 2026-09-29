@@ -7,6 +7,7 @@ import sys
 import csv
 from scipy.stats import binom
 
+
 def trunc_ham_dist(seq_1, seq_2, d, n):
 
     h = 0
@@ -18,13 +19,14 @@ def trunc_ham_dist(seq_1, seq_2, d, n):
 
     return h
 
+
 def find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom):
 
     f_c = highest_freq
     n_hat = int(f_c / p_no_err)
     for d in range(1, l):
         p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
-        f_n = int(p_est*(n_hat + 1))
+        f_n = int(p_est * (n_hat + 1))
         if f_n == 0:
             f_n = 1
             for dist in range(d, l):
@@ -35,6 +37,7 @@ def find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom):
         logK = get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom)
         if logK < 0:
             return d - 1
+
 
 def estimate_rho(sorted_seq_list, seq_freq_dict_dict, l, N_h):
     correct_freq = 0
@@ -58,11 +61,12 @@ def get_SNP_freq_sum(high_freq_seq, seq_freq_dict_dict):
     for i, nuc_current in enumerate(high_freq_seq):
         for nuc_new in nucleotides:
             if nuc_new != nuc_current:
-                snp_seq = high_freq_seq[:i] + nuc_new + high_freq_seq[i + 1:]
+                snp_seq = high_freq_seq[:i] + nuc_new + high_freq_seq[i + 1 :]
                 if snp_seq in seq_freq_dict_dict:
                     SNP_count += seq_freq_dict_dict[snp_seq]
 
     return SNP_count
+
 
 def find_tau(l, p_no_err, total_err_rate, logdenom):
 
@@ -72,6 +76,7 @@ def find_tau(l, p_no_err, total_err_rate, logdenom):
         logK = get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom)
         if logK < 0:
             return d - 1
+
 
 def find_f(l, highest_freq, p_no_err, total_err_rate, logdenom):
 
@@ -85,17 +90,24 @@ def find_f(l, highest_freq, p_no_err, total_err_rate, logdenom):
         if logK < 0:
             return f
 
+
 def find_q_p(eps, l):
 
     for p in range(eps + 1, l):
-        q = round(l/p)
+        q = round(l / p)
         res = l % q
         if res == 0:
-            if sum(binom.pmf(x, l, 3/4) for x in range(eps + 1, q*eps + 1)) < 0.5:
-                    return q, p
+            if sum(binom.pmf(x, l, 3 / 4) for x in range(eps + 1, q * eps + 1)) < 0.5:
+                return q, p
         else:
-            if sum(binom.pmf(x, l, 3/4) for x in range(eps + 1, l - (q*((p - eps)-1) + res) + 1)) < 0.5:
-                    return q, p
+            if (
+                sum(
+                    binom.pmf(x, l, 3 / 4)
+                    for x in range(eps + 1, l - (q * ((p - eps) - 1) + res) + 1)
+                )
+                < 0.5
+            ):
+                return q, p
 
 
 def create_k_mer_dict(seq_list, q, p, l, eps):
@@ -110,14 +122,15 @@ def create_k_mer_dict(seq_list, q, p, l, eps):
             else:
                 k_mer_dict[k_mer_comb] = {seq}
 
-
     k_mer_dict = {k: k_mer_dict[k] for k in non_trivial_keys}
 
     return k_mer_dict
 
+
 def get_k_mers(seq, q, l):
 
-    return [(int(j / q) + 1, seq[j: j + q]) for j in range(0, l, q)]
+    return [(int(j / q) + 1, seq[j : j + q]) for j in range(0, l, q)]
+
 
 def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
@@ -128,10 +141,11 @@ def get_candidates(seq, k_mer_dict, q, l, p, eps):
 
     return candidates
 
+
 def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 
-    n_hat = max(int(f_c/p_no_err), f_c + f_n)
-    p_est = (total_err_rate/3)**d * (1 - total_err_rate)**(l - d)
+    n_hat = max(int(f_c / p_no_err), f_c + f_n)
+    p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
 
     return binom.logpmf(f_n, n_hat, p_est) + math.log(p_est) + logdenom
 
@@ -139,12 +153,24 @@ def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 def locate_mins(a):
 
     smallest = min(a)
-    return smallest, [index for index, element in enumerate(a)
-                      if smallest == element]
+    return smallest, [index for index, element in enumerate(a) if smallest == element]
 
 
-def cluster_reads(seq_list, seq_to_freq_dict, k_mer_dict, q, p,
-                  eps, tau, f, l, p_no_err, total_err_rate, logdenom, bft):
+def cluster_reads(
+    seq_list,
+    seq_to_freq_dict,
+    k_mer_dict,
+    q,
+    p,
+    eps,
+    tau,
+    f,
+    l,
+    p_no_err,
+    total_err_rate,
+    logdenom,
+    bft,
+):
 
     pb_to_freq_dict = {}
     seq_to_clust_dict = {}
@@ -155,12 +181,15 @@ def cluster_reads(seq_list, seq_to_freq_dict, k_mer_dict, q, p,
             if candidates:
                 pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict.keys()]
                 if pb_neighbors:
-                    min_dist, indices = locate_mins([trunc_ham_dist(S_c, pb_neighbor, eps, l)
-                                                     for pb_neighbor in pb_neighbors])
+                    min_dist, indices = locate_mins(
+                        [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
+                    )
                     if len(indices) == 1:
                         S_b = pb_neighbors[indices[0]]
                     else:
-                        S_b = max([pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x])
+                        S_b = max(
+                            [pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x]
+                        )
                     if min_dist != l:
                         if (f_c == 1 and min_dist <= tau) or min_dist == 1:
                             seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
@@ -179,6 +208,7 @@ def cluster_reads(seq_list, seq_to_freq_dict, k_mer_dict, q, p,
 
     return seq_to_clust_dict, pb_to_freq_dict
 
+
 def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
     for seq, freq in deletions_dict.items():
         for i in range(l):
@@ -194,17 +224,19 @@ def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     return seq_to_clust_dict, pb_to_freq_dict
 
+
 def correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     for seq, freq in insertions_dict.items():
         for i in range(l + 1):
-            corrected_seq = seq[:i] + seq[i + 1:]
+            corrected_seq = seq[:i] + seq[i + 1 :]
             if corrected_seq in pb_to_freq_dict:
                 pb_to_freq_dict[corrected_seq] += freq
                 seq_to_clust_dict[seq] = seq_to_clust_dict[corrected_seq]
                 break
 
     return seq_to_clust_dict, pb_to_freq_dict
+
 
 def run(args):
     """Run ``shepherd cluster`` with arguments parsed by shepherd.cli."""
@@ -227,10 +259,11 @@ def run(args):
             if seq_len == l + 1:
                 insertions_dict[seq] = int(freq)
 
-
     start_tot = time.time()
 
-    seq_list = [seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)]
+    seq_list = [
+        seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)
+    ]
 
     if args.Nh == None:
         Nh = 500
@@ -240,7 +273,9 @@ def run(args):
     if args.e == None:
         total_err_rate = estimate_rho(seq_list, seq_freq_dict, l, Nh)
         if total_err_rate == 0 or total_err_rate > 0.1:
-            raise ValueError('Error rate could not be reliably estimated from the data. Please provide an error rate estimate.')
+            raise ValueError(
+                'Error rate could not be reliably estimated from the data. Please provide an error rate estimate.'
+            )
     else:
         total_err_rate = args.e
 
@@ -294,14 +329,29 @@ def run(args):
     print('k-mer Index creation time: ' + str(end - start))
 
     start = time.time()
-    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(seq_list, seq_freq_dict, k_mer_dict, q, p, eps, tau, f, l,
-                                                        p_no_err, total_err_rate, logdenom, bft)
-    seq_to_clust_dict, pb_to_freq_dict = correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l)
-    seq_to_clust_dict, pb_to_freq_dict = correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l)
+    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(
+        seq_list,
+        seq_freq_dict,
+        k_mer_dict,
+        q,
+        p,
+        eps,
+        tau,
+        f,
+        l,
+        p_no_err,
+        total_err_rate,
+        logdenom,
+        bft,
+    )
+    seq_to_clust_dict, pb_to_freq_dict = correct_insertions(
+        insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l
+    )
+    seq_to_clust_dict, pb_to_freq_dict = correct_deletions(
+        deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l
+    )
     end = time.time()
     print('Clustering time: ' + str(end - start))
-
-
 
     with open(file_prefix + '_index', 'wb') as fh:
         pickle.dump(k_mer_dict, fh)
@@ -328,4 +378,4 @@ def run(args):
             i += 1
 
     end_tot = time.time()
-    print('Total time: ' + str((end_tot - start_tot)/60))
+    print('Total time: ' + str((end_tot - start_tot) / 60))

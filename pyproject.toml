@@ -34,3 +34,10 @@ packages = ["src/shepherd"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.format]
+quote-style = "single"

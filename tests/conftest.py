@@ -5,6 +5,7 @@ synthetic data generated as described in Supplementary Section 4.A: random barco
 with exponentially distributed read counts and a constant per nucleotide
 substitution error rate.
 """
+
 import csv
 import os
 from contextlib import contextmanager

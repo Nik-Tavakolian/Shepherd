@@ -3,6 +3,7 @@
 The golden outputs were recorded with tests/golden/make_golden.py. Rows are
 compared as mappings, so a change in row order is not a failure.
 """
+
 import csv
 import gzip
 import io
