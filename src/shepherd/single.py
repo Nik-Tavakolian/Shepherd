@@ -5,7 +5,7 @@ import time
 
 from scipy.stats import binom
 
-from shepherd.kmer_index import add_seq_to_k_mer_dict, get_candidates
+from shepherd.kmer_index import KmerIndex
 from shepherd.model import get_log_K
 
 
@@ -135,13 +135,13 @@ def cluster_reads(
     # Only putative barcodes can absorb a sequence, so the k-mer Index holds just the
     # putative barcodes found so far. Sequences are processed in descending count order
     # and added to the index when they are classified as putative barcodes.
-    k_mer_dict = {}
+    index = KmerIndex(l, q, p, eps)
     pb_to_freq_dict = {}
     seq_to_clust_dict = {}
     for i, S_c in enumerate(seq_list):
         f_c = seq_to_freq_dict[S_c]
         if f_c < f:
-            pb_neighbors = list(get_candidates(S_c, k_mer_dict, q, l, p, eps))
+            pb_neighbors = list(index.neighbours(S_c))
             if pb_neighbors:
                 min_dist, indices = locate_mins(
                     [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
@@ -170,7 +170,7 @@ def cluster_reads(
 
         seq_to_clust_dict[S_c] = i
         pb_to_freq_dict[S_c] = f_c
-        add_seq_to_k_mer_dict(S_c, k_mer_dict, q, l, p, eps)
+        index.add(S_c)
 
     return seq_to_clust_dict, pb_to_freq_dict
 

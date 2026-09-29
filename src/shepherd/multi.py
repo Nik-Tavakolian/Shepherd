@@ -2,7 +2,7 @@ import csv
 import pickle
 import time
 
-from shepherd.kmer_index import add_seq_to_k_mer_dict, build_k_mer_dict, get_candidates
+from shepherd.kmer_index import KmerIndex
 from shepherd.model import get_log_K
 from shepherd.single import cluster_reads
 
@@ -25,9 +25,9 @@ def locate_mins(a):
     return smallest, [index for index, element in enumerate(a) if smallest == element]
 
 
-def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
+def get_closest_pb(seq, pb_to_freq_dict_t0, index, eps, l):
 
-    candidates = get_candidates(seq, k_mer_dict, q, l, p, eps)
+    candidates = index.neighbours(seq)
     if candidates:
         pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict_t0]
         if pb_neighbors:
@@ -49,7 +49,7 @@ def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
 
 
 def classify_reads(
-    seq_list_sorted, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
+    seq_list_sorted, seq_freq_dict, index, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
 ):
 
     q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
@@ -72,9 +72,9 @@ def classify_reads(
             pb_to_freq_dict_t1[seq] = freq
             pb_to_seqs_dict_t1[seq] = []
             seq_to_clust_dict_t1[seq] = i
-            k_mer_dict = add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
+            index.add(seq)
         else:
-            out = get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps)
+            out = get_closest_pb(seq, pb_to_freq_dict_t0, index, eps, l)
             if out:
                 closest_pb, dist = out
                 seq_to_dist_dict_t1[seq] = dist
@@ -98,7 +98,6 @@ def classify_reads(
         pb_to_seqs_dict_t1,
         seq_to_dist_dict_t1,
         unassigned_seqs_dict,
-        k_mer_dict,
     )
 
 
@@ -108,7 +107,7 @@ def separate_emerging(
     seq_to_clust_dict_t1,
     pb_to_seqs_dict_t1,
     seq_to_dist_dict_t1,
-    k_mer_dict,
+    index,
     params,
 ):
 
@@ -132,7 +131,7 @@ def separate_emerging(
                 pb_to_freq_dict_t1[seq] = f_c
                 pb_to_freq_dict_t1[pb] -= f_c
                 seq_to_clust_dict_t1[seq] = id_count
-                k_mer_dict = add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
+                index.add(seq)
                 for s in seqs[i + 1 :]:
                     if s in reassigned_seqs:
                         continue
@@ -147,18 +146,14 @@ def separate_emerging(
                         seq_to_clust_dict_t1[s] = id_count
                         reassigned_seqs.add(s)
 
-    return pb_to_freq_dict_t1, seq_to_clust_dict_t1, k_mer_dict
+    return pb_to_freq_dict_t1, seq_to_clust_dict_t1
 
 
-def classify_unassigned(
-    unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict, k_mer_dict, params
-):
+def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict, index, params):
 
     unassigned_seq_dict_copy = unassigned_seq_dict.copy()
     for seq_u, f_u in unassigned_seq_dict_copy.items():
-        out = get_closest_pb(
-            seq_u, pb_to_freq_dict, k_mer_dict, params[0], params[1], params[2], params[3]
-        )
+        out = get_closest_pb(seq_u, pb_to_freq_dict, index, params[3], params[1])
         if out:
             closest_pb, _ = out
             if closest_pb:
@@ -230,7 +225,9 @@ def run(args):
     with open(f0_prefix + '_params', 'rb') as f:
         params = pickle.load(f)
 
-    k_mer_dict = build_k_mer_dict(pb_to_freq_dict_t0, params[0], params[1], params[2], params[3])
+    index = KmerIndex(params[1], params[0], params[2], params[3])
+    for pb in pb_to_freq_dict_t0:
+        index.add(pb)
 
     print('Starting classification')
     print('\t')
@@ -266,24 +263,23 @@ def run(args):
             pb_to_seqs_dict,
             seq_to_dist_dict,
             unassigned_seq_dict,
-            k_mer_dict,
         ) = classify_reads(
-            seq_list, seq_freq_dict, k_mer_dict, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
+            seq_list, seq_freq_dict, index, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
         )
 
-        pb_to_freq_dict_t1, seq_to_clust_dict, k_mer_dict = separate_emerging(
+        pb_to_freq_dict_t1, seq_to_clust_dict = separate_emerging(
             pb_to_freq_dict_t1,
             seq_freq_dict,
             seq_to_clust_dict,
             pb_to_seqs_dict,
             seq_to_dist_dict,
-            k_mer_dict,
+            index,
             params,
         )
 
         if unassigned_seq_dict:
             unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict = classify_unassigned(
-                unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict, k_mer_dict, params
+                unassigned_seq_dict, pb_to_freq_dict_t1, seq_to_clust_dict, index, params
             )
 
             unassigned_seq_list = [

@@ -1,44 +1,63 @@
-"""The k-mer Index (Section 2.1 of the paper).
+"""The k-mer Index (Section 2.1 of the paper)."""
 
-A sequence of length l is split into p non-overlapping k-mers (the last one
-may be shorter). By the pigeonhole principle, two sequences within Hamming
-distance eps share at least p - eps of them. The index maps every combination
-of p - eps position-tagged k-mers to the set of indexed sequences containing
-it, so all sequences within distance eps of a query can be found by looking
-up the query's own combinations.
-"""
-
+from collections.abc import Iterator
 from itertools import combinations
 
-
-def get_k_mers(seq, q, l):
-
-    return [(int(j / q) + 1, seq[j : j + q]) for j in range(0, l, q)]
+KmerCombination = tuple[tuple[int, str], ...]
 
 
-def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
-    for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-        if k_mer_comb in k_mer_dict:
-            k_mer_dict[k_mer_comb].add(seq)
-        else:
-            k_mer_dict[k_mer_comb] = {seq}
+class KmerIndex:
+    """Find the indexed sequences that may lie within Hamming distance epsilon of a query.
 
-    return k_mer_dict
+    Every sequence of length ``barcode_length`` is split into non-overlapping
+    k-mers of length ``kmer_length`` (the last one may be shorter), each tagged
+    with its position. By the pigeonhole principle, two sequences within Hamming
+    distance epsilon share at least ``n_partitions - epsilon`` of these k-mers.
+    The index maps every combination of that many position-tagged k-mers to the
+    indexed sequences containing it, so any indexed sequence within epsilon of a
+    query shares at least one combination with the query.
 
+    :meth:`neighbours` can also return sequences further away than epsilon (up
+    to about ``kmer_length * epsilon``); callers filter them by distance.
+    """
 
-def build_k_mer_dict(seq_list, q, l, p, eps):
-    k_mer_dict = {}
-    for seq in seq_list:
-        add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
+    def __init__(
+        self, barcode_length: int, kmer_length: int, n_partitions: int, epsilon: int
+    ) -> None:
+        if n_partitions <= epsilon:
+            raise ValueError(
+                f'the number of partitions ({n_partitions}) must be larger than epsilon '
+                f'({epsilon}); choose a smaller k-mer length'
+            )
+        self._kmer_length = kmer_length
+        self._positions = [
+            (start // kmer_length + 1, start) for start in range(0, barcode_length, kmer_length)
+        ]
+        self._combination_size = n_partitions - epsilon
+        self._sequences_by_combination: dict[KmerCombination, set[str]] = {}
 
-    return k_mer_dict
+    def _combinations(self, seq: str) -> Iterator[KmerCombination]:
+        k = self._kmer_length
+        kmers = [(position, seq[start : start + k]) for position, start in self._positions]
+        return combinations(kmers, self._combination_size)
 
+    def add(self, seq: str) -> None:
+        """Add a sequence to the index."""
+        for combination in self._combinations(seq):
+            sequences = self._sequences_by_combination.get(combination)
+            if sequences is None:
+                self._sequences_by_combination[combination] = {seq}
+            else:
+                sequences.add(seq)
 
-def get_candidates(seq, k_mer_dict, q, l, p, eps):
+    def neighbours(self, seq: str) -> set[str]:
+        """Return the indexed sequences that share at least one k-mer combination with seq.
 
-    candidates = set()
-    for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-        if k_mer_comb in k_mer_dict:
-            candidates.update(k_mer_dict[k_mer_comb])
-
-    return candidates
+        This includes every indexed sequence within Hamming distance epsilon of seq.
+        """
+        neighbours: set[str] = set()
+        for combination in self._combinations(seq):
+            sequences = self._sequences_by_combination.get(combination)
+            if sequences is not None:
+                neighbours.update(sequences)
+        return neighbours
