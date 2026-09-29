@@ -129,10 +129,13 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
 
     q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
     id_count = max(seq_to_clust_dict_t1.values())
+    reassigned_seqs = set()
     for pb, seqs in pb_to_seqs_dict_t1.items():
         for i, seq in enumerate(seqs):
             if not pb in seq_freq_dict:
                 break
+            if seq in reassigned_seqs:
+                continue
             f_c = seq_freq_dict[seq]
             f_b = seq_freq_dict[pb]
             if f_b < f_c:
@@ -146,6 +149,8 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
                 seq_to_clust_dict_t1[seq] = id_count
                 k_mer_dict = add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
                 for s in seqs[i + 1:]:
+                    if s in reassigned_seqs:
+                        continue
                     f_c_new = seq_freq_dict[s]
                     d = seq_to_dist_dict_t1[s]
                     d_new = trunc_ham_dist(seq, s, eps, l)
@@ -155,6 +160,7 @@ def separate_emerging(pb_to_freq_dict_t1, seq_freq_dict, seq_to_clust_dict_t1, p
                         pb_to_freq_dict_t1[seq] += f_c_new
                         pb_to_freq_dict_t1[pb] -= f_c_new
                         seq_to_clust_dict_t1[s] = id_count
+                        reassigned_seqs.add(s)
 
     return pb_to_freq_dict_t1, seq_to_clust_dict_t1, k_mer_dict
 

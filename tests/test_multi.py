@@ -55,3 +55,18 @@ def test_error_reads_of_an_emerging_barcode_are_merged_into_it(tmp_path, backgro
     freqs = read_multi_freqs(tmp_path)
     assert freqs[emerging] == [0, 360, 660]
     assert not set(errors) & set(freqs), 'error sequences reported as lineages'
+
+
+def test_separating_an_emerging_barcode_counts_each_read_once(tmp_path, background):
+    barcode = 'CCCCCCCCCCGGGGGGGGGG'
+    emerging = 'CCCCCCCCCCGGGGGGGGTT'   # distance 2 from barcode
+    near_emerging = 'CCCCCCCCCCGGGGGGGTTT'  # distance 3 from barcode, 1 from emerging
+    write_counts(tmp_path / 't0.txt', background, {barcode: 1000})
+    write_counts(tmp_path / 't1.txt', background, {barcode: 1000, emerging: 200, near_emerging: 50})
+    run_t0(tmp_path, 't0.txt')
+    run_multi(tmp_path, 't0.txt', ['t1.txt'])
+
+    freqs = read_multi_freqs(tmp_path)
+    assert freqs[barcode] == [1000, 1000]
+    assert freqs[emerging] == [0, 250]
+    assert near_emerging not in freqs
