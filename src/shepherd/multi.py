@@ -1,9 +1,8 @@
 import csv
-import pickle
 import time
 
 from shepherd.kmer_index import KmerIndex
-from shepherd.model import get_log_K
+from shepherd.parameters import Parameters
 from shepherd.single import cluster_reads
 
 
@@ -52,7 +51,7 @@ def classify_reads(
     seq_list_sorted, seq_freq_dict, index, pb_to_freq_dict_t0, unassigned_pb_freq_dict, params
 ):
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
+    l, eps = params.barcode_length, params.epsilon
     unassigned_seqs_dict = {}
     pb_to_freq_dict_t1 = {}
     seq_to_clust_dict_t1 = {}
@@ -111,7 +110,8 @@ def separate_emerging(
     params,
 ):
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
+    l, eps, bft = params.barcode_length, params.epsilon, params.log_bf_threshold
+    model = params.error_model
     id_count = max(seq_to_clust_dict_t1.values())
     reassigned_seqs = set()
     for pb, seqs in pb_to_seqs_dict_t1.items():
@@ -125,7 +125,7 @@ def separate_emerging(
             if f_b < f_c:
                 break
             d = seq_to_dist_dict_t1[seq]
-            logK = get_log_K(f_c, f_b, p_no_err, d, l, total_err_rate, logdenom)
+            logK = model.log_bayes_factor(f_c, f_b, d)
             if not logK > bft:
                 id_count += 1
                 pb_to_freq_dict_t1[seq] = f_c
@@ -138,8 +138,8 @@ def separate_emerging(
                     f_c_new = seq_freq_dict[s]
                     d = seq_to_dist_dict_t1[s]
                     d_new = trunc_ham_dist(seq, s, eps, l)
-                    logK = get_log_K(f_c_new, f_b, p_no_err, d, l, total_err_rate, logdenom)
-                    logK_new = get_log_K(f_c_new, f_c, p_no_err, d_new, l, total_err_rate, logdenom)
+                    logK = model.log_bayes_factor(f_c_new, f_b, d)
+                    logK_new = model.log_bayes_factor(f_c_new, f_c, d_new)
                     if logK_new > logK:
                         pb_to_freq_dict_t1[seq] += f_c_new
                         pb_to_freq_dict_t1[pb] -= f_c_new
@@ -153,7 +153,7 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
 
     unassigned_seq_dict_copy = unassigned_seq_dict.copy()
     for seq_u, f_u in unassigned_seq_dict_copy.items():
-        out = get_closest_pb(seq_u, pb_to_freq_dict, index, params[3], params[1])
+        out = get_closest_pb(seq_u, pb_to_freq_dict, index, params.epsilon, params.barcode_length)
         if out:
             closest_pb, _ = out
             if closest_pb:
@@ -167,10 +167,7 @@ def classify_unassigned(unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict,
 def cluster_unassigned(seq_list, seq_to_freq_dict, params):
     """Cluster the unassigned reads with the single time point procedure."""
 
-    q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
-    return cluster_reads(
-        seq_list, seq_to_freq_dict, q, p, eps, tau, f, l, p_no_err, total_err_rate, logdenom, bft
-    )
+    return cluster_reads(seq_list, seq_to_freq_dict, params)
 
 
 def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
@@ -222,10 +219,11 @@ def run(args):
                 pb_to_freq_dict_t0[key] = int(value)
             i += 1
 
-    with open(f0_prefix + '_params', 'rb') as f:
-        params = pickle.load(f)
+    params = Parameters.load(f0_prefix + '_params.json')
 
-    index = KmerIndex(params[1], params[0], params[2], params[3])
+    index = KmerIndex(
+        params.barcode_length, params.kmer_length, params.n_partitions, params.epsilon
+    )
     for pb in pb_to_freq_dict_t0:
         index.add(pb)
 
@@ -241,7 +239,7 @@ def run(args):
         deletions_dict = {}
         insertions_dict = {}
         seq_freq_dict = {}
-        l = params[1]
+        l = params.barcode_length
         with open(filename) as a_file:
             for line in a_file:
                 seq, freq = line.split()

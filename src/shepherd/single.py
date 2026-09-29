@@ -1,12 +1,9 @@
 import csv
-import math
-import pickle
 import time
 
-from scipy.stats import binom
-
 from shepherd.kmer_index import KmerIndex
-from shepherd.model import get_log_K
+from shepherd.parameters import DEFAULT_LOG_BF_THRESHOLD, DEFAULT_N_TOP, estimate_parameters
+from shepherd.sequences import sort_by_count
 
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
@@ -21,121 +18,20 @@ def trunc_ham_dist(seq_1, seq_2, d, n):
     return h
 
 
-def find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom):
-
-    f_c = highest_freq
-    n_hat = int(f_c / p_no_err)
-    for d in range(1, l):
-        p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
-        f_n = int(p_est * (n_hat + 1))
-        if f_n == 0:
-            f_n = 1
-            for dist in range(d, l):
-                logK = get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom)
-                if logK < 0:
-                    return d - 1
-
-        logK = get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom)
-        if logK < 0:
-            return d - 1
-
-
-def estimate_rho(sorted_seq_list, seq_freq_dict_dict, l, N_h):
-    correct_freq = 0
-    total_SNP_count = 0
-    for i, high_freq_seq in enumerate(sorted_seq_list):
-        correct_freq += seq_freq_dict_dict[high_freq_seq]
-        total_SNP_count += get_SNP_freq_sum(high_freq_seq, seq_freq_dict_dict)
-        if i == N_h:
-            break
-        i += 1
-    v = total_SNP_count / (correct_freq * l)
-    rho = v / (v + 1)
-
-    return rho
-
-
-def get_SNP_freq_sum(high_freq_seq, seq_freq_dict_dict):
-
-    SNP_count = 0
-    nucleotides = {'A', 'C', 'T', 'G'}
-    for i, nuc_current in enumerate(high_freq_seq):
-        for nuc_new in nucleotides:
-            if nuc_new != nuc_current:
-                snp_seq = high_freq_seq[:i] + nuc_new + high_freq_seq[i + 1 :]
-                if snp_seq in seq_freq_dict_dict:
-                    SNP_count += seq_freq_dict_dict[snp_seq]
-
-    return SNP_count
-
-
-def find_tau(l, p_no_err, total_err_rate, logdenom):
-
-    f_c = 1
-    f_n = 1
-    for d in range(1, l):
-        logK = get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom)
-        if logK < 0:
-            return d - 1
-
-
-def find_f(l, highest_freq, p_no_err, total_err_rate, logdenom):
-
-    f_c = highest_freq
-    d = 1
-    n_hat = int(f_c / p_no_err)
-    p_est = (total_err_rate / 3) ** d * (1 - total_err_rate) ** (l - d)
-    f_n = int(p_est * (n_hat + 1))
-    for f in range(f_n, highest_freq):
-        logK = get_log_K(f, f_c, p_no_err, d, l, total_err_rate, logdenom)
-        if logK < 0:
-            return f
-
-
-def find_q_p(eps, l):
-
-    for p in range(eps + 1, l):
-        q = round(l / p)
-        res = l % q
-        if res == 0:
-            if sum(binom.pmf(x, l, 3 / 4) for x in range(eps + 1, q * eps + 1)) < 0.5:
-                return q, p
-        else:
-            if (
-                sum(
-                    binom.pmf(x, l, 3 / 4)
-                    for x in range(eps + 1, l - (q * ((p - eps) - 1) + res) + 1)
-                )
-                < 0.5
-            ):
-                return q, p
-
-
 def locate_mins(a):
 
     smallest = min(a)
     return smallest, [index for index, element in enumerate(a) if smallest == element]
 
 
-def cluster_reads(
-    seq_list,
-    seq_to_freq_dict,
-    q,
-    p,
-    eps,
-    tau,
-    f,
-    l,
-    p_no_err,
-    total_err_rate,
-    logdenom,
-    bft,
-):
+def cluster_reads(seq_list, seq_to_freq_dict, params):
 
+    l, eps, tau, f = params.barcode_length, params.epsilon, params.tau, params.count_threshold
+    model = params.error_model
     # Only putative barcodes can absorb a sequence, so the k-mer Index holds just the
     # putative barcodes found so far. Sequences are processed in descending count order
     # and added to the index when they are classified as putative barcodes.
-    index = KmerIndex(l, q, p, eps)
+    index = KmerIndex(l, params.kmer_length, params.n_partitions, eps)
     pb_to_freq_dict = {}
     seq_to_clust_dict = {}
     for i, S_c in enumerate(seq_list):
@@ -162,8 +58,8 @@ def cluster_reads(
                         continue
 
                     f_b = seq_to_freq_dict[S_b]
-                    logK = get_log_K(f_c, f_b, p_no_err, min_dist, l, total_err_rate, logdenom)
-                    if logK > bft:
+                    logK = model.log_bayes_factor(f_c, f_b, min_dist)
+                    if logK > params.log_bf_threshold:
                         seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
                         pb_to_freq_dict[S_b] += f_c
                         continue
@@ -227,84 +123,33 @@ def run(args):
 
     start_tot = time.time()
 
-    seq_list = [
-        seq for seq, freq in sorted(seq_freq_dict.items(), key=lambda x: x[1], reverse=True)
-    ]
-
-    if args.Nh is None:
-        Nh = 500
-    else:
-        Nh = args.Nh
-
-    if args.e is None:
-        total_err_rate = estimate_rho(seq_list, seq_freq_dict, l, Nh)
-        if total_err_rate == 0 or total_err_rate > 0.1:
-            raise ValueError(
-                'Error rate could not be reliably estimated from the data. '
-                'Please provide an error rate estimate.'
-            )
-    else:
-        total_err_rate = args.e
-
-    print('Substitution Error Rate Estimate: ' + str(total_err_rate))
-
-    highest_freq = seq_freq_dict[seq_list[0]]
-    logdenom = l * math.log(4) + math.log(highest_freq)
-    p_no_err = binom.pmf(0, l, total_err_rate)
-
-    if args.eps is None:
-        eps = find_eps(l, highest_freq, p_no_err, total_err_rate, logdenom)
-    else:
-        eps = args.eps
-
-    if args.tau is None:
-        tau = find_tau(l, p_no_err, total_err_rate, logdenom)
-    else:
-        tau = args.tau
-
-    if args.ft is None:
-        f = find_f(l, highest_freq, p_no_err, total_err_rate, logdenom)
-    else:
-        f = args.ft
-
-    if args.k is None:
-        q, p = find_q_p(eps, l)
-    else:
-        q = args.k
-        p = l // q + int(l % q > 0)
-
-    if args.bft is None:
-        bft = -4
-    else:
-        bft = args.bft
+    seq_list = sort_by_count(seq_freq_dict)
+    params = estimate_parameters(
+        seq_freq_dict,
+        l,
+        error_rate=args.e,
+        epsilon=args.eps,
+        kmer_length=args.k,
+        tau=args.tau,
+        count_threshold=args.ft,
+        log_bf_threshold=DEFAULT_LOG_BF_THRESHOLD if args.bft is None else args.bft,
+        n_top=DEFAULT_N_TOP if args.Nh is None else args.Nh,
+    )
 
     print('Shepherd Single Parameters:')
     print('\t')
-    print('Sequence length: ' + str(l))
-    print('Substitution Error Rate Estimate: ' + str(total_err_rate))
-    print('epsilon: ' + str(eps))
-    print('tau: ' + str(tau))
-    print('f: ' + str(f))
-    print('Bayes Factor Threshold: ' + str(bft))
-    print('Substring Length: ' + str(q))
-    print('Number of Partitions: ' + str(p))
+    print('Sequence length: ' + str(params.barcode_length))
+    print('Substitution Error Rate Estimate: ' + str(params.error_rate))
+    print('epsilon: ' + str(params.epsilon))
+    print('tau: ' + str(params.tau))
+    print('f: ' + str(params.count_threshold))
+    print('Bayes Factor Threshold: ' + str(params.log_bf_threshold))
+    print('Substring Length: ' + str(params.kmer_length))
+    print('Number of Partitions: ' + str(params.n_partitions))
     print('\t')
 
     start = time.time()
-    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(
-        seq_list,
-        seq_freq_dict,
-        q,
-        p,
-        eps,
-        tau,
-        f,
-        l,
-        p_no_err,
-        total_err_rate,
-        logdenom,
-        bft,
-    )
+    seq_to_clust_dict, pb_to_freq_dict = cluster_reads(seq_list, seq_freq_dict, params)
     seq_to_clust_dict, pb_to_freq_dict = correct_insertions(
         insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l
     )
@@ -314,8 +159,7 @@ def run(args):
     end = time.time()
     print('Clustering time: ' + str(end - start))
 
-    with open(file_prefix + '_params', 'wb') as fh:
-        pickle.dump([q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau], fh)
+    params.save(file_prefix + '_params.json')
 
     with open(file_prefix + '_seq_clust.csv', 'w', newline='') as fh:
         writer = csv.writer(fh)

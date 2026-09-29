@@ -55,7 +55,7 @@ select = [
 # Temporary: these findings (the variable name `l`, positional parameter unpacking,
 # hand-written counters) disappear when the original modules are split up and
 # rewritten. Remove this section once that is done.
-"src/shepherd/{single,multi,model}.py" = ["E741", "RUF059", "B905", "SIM108", "SIM113", "B007"]
+"src/shepherd/{single,multi}.py" = ["E741", "RUF059", "B905", "SIM108", "SIM113", "B007"]
 
 [tool.ruff.format]
 quote-style = "single"

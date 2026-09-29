@@ -40,6 +40,8 @@ OUTPUT_FILES = [
     'multi_freqs.csv',
 ]
 
+PARAMETER_FILES = ['t0_params.json', 't0_k3_params.json']
+
 
 def simulate_time_series(seed=2022, n_barcodes=500, length=20, error_rate=0.005, indel_rate=0.001):
     """Simulate three time points of barcode read counts.
@@ -81,11 +83,17 @@ def simulate_time_series(seed=2022, n_barcodes=500, length=20, error_rate=0.005,
     return series
 
 
+def write_gzip(path, data):
+    # A fixed timestamp keeps the file identical when its content does not change.
+    with open(path, 'wb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', mtime=0) as fh:
+        fh.write(data)
+
+
 def write_inputs():
     DATA_DIR.mkdir(exist_ok=True)
     for filename, counts in zip(TIME_POINTS, simulate_time_series(), strict=True):
-        with gzip.open(DATA_DIR / (filename + '.gz'), 'wt') as fh:
-            fh.writelines(f'{seq}\t{count}\n' for seq, count in counts.items())
+        text = ''.join(f'{seq}\t{count}\n' for seq, count in counts.items())
+        write_gzip(DATA_DIR / (filename + '.gz'), text.encode())
 
 
 def copy_inputs(workdir):
@@ -110,11 +118,9 @@ def write_outputs():
     with tempfile.TemporaryDirectory() as workdir:
         run_all_scenarios(workdir)
         for filename in OUTPUT_FILES:
-            with (
-                open(Path(workdir) / filename, 'rb') as src,
-                gzip.open(DATA_DIR / (filename + '.gz'), 'wb') as dst,
-            ):
-                shutil.copyfileobj(src, dst)
+            write_gzip(DATA_DIR / (filename + '.gz'), (Path(workdir) / filename).read_bytes())
+        for filename in PARAMETER_FILES:
+            shutil.copy(Path(workdir) / filename, DATA_DIR / filename)
 
 
 if __name__ == '__main__':

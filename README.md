@@ -69,7 +69,7 @@ These inputs are optional and we recommend using the default values determined b
 
 **_pb_freq.csv:** A .csv file where the putative barcodes are in the first column and the estimated counts are in the second column.
 
-**_params:** The parameters used to run the command stored in the pickle format.
+**_params.json:** The parameters used for the run (error rate, epsilon, tau, count threshold, k-mer length, ...) in JSON format. `shepherd track` reads them from this file.
 
 ### Usage
 
