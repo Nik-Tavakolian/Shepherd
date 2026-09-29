@@ -1,7 +1,7 @@
 """Regression tests for multiple time point mode (shepherd track)."""
 
 from conftest import read_multi_freqs, read_seq_clust, run_cluster, run_track, write_counts
-from shepherd.multi import add_seq_to_k_mer_dict
+from shepherd.kmer_index import add_seq_to_k_mer_dict
 
 
 def test_pipeline_conserves_reads_of_stable_barcodes(tmp_path, background):

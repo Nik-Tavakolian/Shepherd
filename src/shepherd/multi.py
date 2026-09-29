@@ -2,9 +2,11 @@ import csv
 import math
 import pickle
 import time
-from itertools import combinations
 
 from scipy.stats import binom
+
+from shepherd.kmer_index import add_seq_to_k_mer_dict, build_k_mer_dict, get_candidates
+from shepherd.single import cluster_reads
 
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
@@ -17,41 +19,6 @@ def trunc_ham_dist(seq_1, seq_2, d, n):
             return n
 
     return h
-
-
-def get_k_mers(seq, q, l):
-
-    return [(int(j / q) + 1, seq[j : j + q]) for j in range(0, l, q)]
-
-
-def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
-    for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-        if k_mer_comb in k_mer_dict:
-            k_mer_dict[k_mer_comb].add(seq)
-        else:
-            k_mer_dict[k_mer_comb] = {seq}
-
-    return k_mer_dict
-
-
-def build_k_mer_dict(seq_list, q, l, p, eps):
-    # Unlike create_k_mer_dict in shepherd_t0.py, k-mer combinations that occur in a
-    # single sequence are kept, since the index is queried with sequences outside seq_list.
-    k_mer_dict = {}
-    for seq in seq_list:
-        add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps)
-
-    return k_mer_dict
-
-
-def get_candidates(seq, k_mer_dict, q, l, p, eps):
-
-    candidates = set()
-    for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-        if k_mer_comb in k_mer_dict:
-            candidates.update(k_mer_dict[k_mer_comb])
-
-    return candidates
 
 
 def locate_mins(a):
@@ -212,47 +179,13 @@ def classify_unassigned(
     return unassigned_seq_dict, pb_to_freq_dict, seq_to_clust_dict
 
 
-def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
+def cluster_unassigned(seq_list, seq_to_freq_dict, params):
+    """Cluster the unassigned reads with the single time point procedure."""
 
     q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau = params
-    pb_to_freq_dict = {}
-    seq_to_clust_dict = {}
-    for i, S_c in enumerate(seq_list):
-        f_c = seq_to_freq_dict[S_c]
-        if f_c < f:
-            candidates = get_candidates(S_c, k_mer_dict, q, l, p, eps)
-            if candidates:
-                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict]
-                if pb_neighbors:
-                    min_dist, indices = locate_mins(
-                        [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
-                    )
-                    if len(indices) == 1:
-                        S_b = pb_neighbors[indices[0]]
-                    else:
-                        # Ties: the higher count wins, then the alphabetically first sequence,
-                        # so the choice does not depend on the iteration order of a set.
-                        S_b = min(
-                            [pb_neighbors[j] for j in indices],
-                            key=lambda x: (-seq_to_freq_dict[x], x),
-                        )
-                    if min_dist != l:
-                        if (f_c == 1 and min_dist <= tau) or min_dist == 1:
-                            seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
-                            pb_to_freq_dict[S_b] += f_c
-                            continue
-
-                        f_b = seq_to_freq_dict[S_b]
-                        logK = get_log_K(f_c, f_b, p_no_err, min_dist, l, total_err_rate, logdenom)
-                        if logK > bft:
-                            seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
-                            pb_to_freq_dict[S_b] += f_c
-                            continue
-
-        seq_to_clust_dict[S_c] = i
-        pb_to_freq_dict[S_c] = f_c
-
-    return seq_to_clust_dict, pb_to_freq_dict
+    return cluster_reads(
+        seq_list, seq_to_freq_dict, q, p, eps, tau, f, l, p_no_err, total_err_rate, logdenom, bft
+    )
 
 
 def correct_deletions(deletions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
@@ -370,11 +303,8 @@ def run(args):
                 )
             ]
 
-            unassigned_k_mer_dict = build_k_mer_dict(
-                unassigned_seq_list, params[0], params[1], params[2], params[3]
-            )
             unassigned_seq_to_clust_dict, unassigned_pb_freq_dict = cluster_unassigned(
-                unassigned_seq_list, unassigned_seq_dict, unassigned_k_mer_dict, params
+                unassigned_seq_list, unassigned_seq_dict, params
             )
         else:
             unassigned_pb_freq_dict = {}

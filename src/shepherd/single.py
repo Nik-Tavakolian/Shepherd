@@ -2,9 +2,10 @@ import csv
 import math
 import pickle
 import time
-from itertools import combinations
 
 from scipy.stats import binom
+
+from shepherd.kmer_index import add_seq_to_k_mer_dict, get_candidates
 
 
 def trunc_ham_dist(seq_1, seq_2, d, n):
@@ -109,38 +110,6 @@ def find_q_p(eps, l):
                 return q, p
 
 
-def create_k_mer_dict(seq_list, q, p, l, eps):
-
-    k_mer_dict = {}
-    non_trivial_keys = set()
-    for seq in seq_list:
-        for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-            if k_mer_comb in k_mer_dict:
-                k_mer_dict[k_mer_comb].add(seq)
-                non_trivial_keys.add(k_mer_comb)
-            else:
-                k_mer_dict[k_mer_comb] = {seq}
-
-    k_mer_dict = {k: k_mer_dict[k] for k in non_trivial_keys}
-
-    return k_mer_dict
-
-
-def get_k_mers(seq, q, l):
-
-    return [(int(j / q) + 1, seq[j : j + q]) for j in range(0, l, q)]
-
-
-def get_candidates(seq, k_mer_dict, q, l, p, eps):
-
-    candidates = set()
-    for k_mer_comb in combinations(get_k_mers(seq, q, l), p - eps):
-        if k_mer_comb in k_mer_dict:
-            candidates.update(k_mer_dict[k_mer_comb])
-
-    return candidates
-
-
 def get_log_K(f_n, f_c, p_no_err, d, l, total_err_rate, logdenom):
 
     n_hat = max(int(f_c / p_no_err), f_c + f_n)
@@ -158,7 +127,6 @@ def locate_mins(a):
 def cluster_reads(
     seq_list,
     seq_to_freq_dict,
-    k_mer_dict,
     q,
     p,
     eps,
@@ -171,42 +139,45 @@ def cluster_reads(
     bft,
 ):
 
+    # Only putative barcodes can absorb a sequence, so the k-mer Index holds just the
+    # putative barcodes found so far. Sequences are processed in descending count order
+    # and added to the index when they are classified as putative barcodes.
+    k_mer_dict = {}
     pb_to_freq_dict = {}
     seq_to_clust_dict = {}
     for i, S_c in enumerate(seq_list):
         f_c = seq_to_freq_dict[S_c]
         if f_c < f:
-            candidates = get_candidates(S_c, k_mer_dict, q, l, p, eps)
-            if candidates:
-                pb_neighbors = [cand for cand in candidates if cand in pb_to_freq_dict]
-                if pb_neighbors:
-                    min_dist, indices = locate_mins(
-                        [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
+            pb_neighbors = list(get_candidates(S_c, k_mer_dict, q, l, p, eps))
+            if pb_neighbors:
+                min_dist, indices = locate_mins(
+                    [trunc_ham_dist(S_c, pb_neighbor, eps, l) for pb_neighbor in pb_neighbors]
+                )
+                if len(indices) == 1:
+                    S_b = pb_neighbors[indices[0]]
+                else:
+                    # Ties: the higher count wins, then the alphabetically first sequence,
+                    # so the choice does not depend on the iteration order of a set.
+                    S_b = min(
+                        [pb_neighbors[j] for j in indices],
+                        key=lambda x: (-seq_to_freq_dict[x], x),
                     )
-                    if len(indices) == 1:
-                        S_b = pb_neighbors[indices[0]]
-                    else:
-                        # Ties: the higher count wins, then the alphabetically first sequence,
-                        # so the choice does not depend on the iteration order of a set.
-                        S_b = min(
-                            [pb_neighbors[j] for j in indices],
-                            key=lambda x: (-seq_to_freq_dict[x], x),
-                        )
-                    if min_dist != l:
-                        if (f_c == 1 and min_dist <= tau) or min_dist == 1:
-                            seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
-                            pb_to_freq_dict[S_b] += f_c
-                            continue
+                if min_dist != l:
+                    if (f_c == 1 and min_dist <= tau) or min_dist == 1:
+                        seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
+                        pb_to_freq_dict[S_b] += f_c
+                        continue
 
-                        f_b = seq_to_freq_dict[S_b]
-                        logK = get_log_K(f_c, f_b, p_no_err, min_dist, l, total_err_rate, logdenom)
-                        if logK > bft:
-                            seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
-                            pb_to_freq_dict[S_b] += f_c
-                            continue
+                    f_b = seq_to_freq_dict[S_b]
+                    logK = get_log_K(f_c, f_b, p_no_err, min_dist, l, total_err_rate, logdenom)
+                    if logK > bft:
+                        seq_to_clust_dict[S_c] = seq_to_clust_dict[S_b]
+                        pb_to_freq_dict[S_b] += f_c
+                        continue
 
         seq_to_clust_dict[S_c] = i
         pb_to_freq_dict[S_c] = f_c
+        add_seq_to_k_mer_dict(S_c, k_mer_dict, q, l, p, eps)
 
     return seq_to_clust_dict, pb_to_freq_dict
 
@@ -327,15 +298,9 @@ def run(args):
     print('\t')
 
     start = time.time()
-    k_mer_dict = create_k_mer_dict(seq_freq_dict, q, p, l, eps)
-    end = time.time()
-    print('k-mer Index creation time: ' + str(end - start))
-
-    start = time.time()
     seq_to_clust_dict, pb_to_freq_dict = cluster_reads(
         seq_list,
         seq_freq_dict,
-        k_mer_dict,
         q,
         p,
         eps,
@@ -355,9 +320,6 @@ def run(args):
     )
     end = time.time()
     print('Clustering time: ' + str(end - start))
-
-    with open(file_prefix + '_index', 'wb') as fh:
-        pickle.dump(k_mer_dict, fh)
 
     with open(file_prefix + '_params', 'wb') as fh:
         pickle.dump([q, l, p, eps, p_no_err, total_err_rate, bft, logdenom, f, tau], fh)
