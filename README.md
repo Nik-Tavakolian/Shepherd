@@ -2,13 +2,25 @@
 
 ## Getting Started
 
-Shepherd is a Python program for correcting substitution errors and single insertion and deletion errors in DNA barcode reads. These errors occur during PCR amplification and sequencing of the DNA barcodes. Shepherd is cross-platform and runs on any computer with Python 3.8 or later and the Scipy library. 
+Shepherd is a Python program for correcting substitution errors and single insertion and deletion errors in DNA barcode reads. These errors occur during PCR amplification and sequencing of the DNA barcodes. Shepherd is cross-platform and runs on any computer with Python 3.10 or later.
 
-The program consists of two python scripts: shepherd_t0.py and shepherd_multi.py. These scripts are used via a command line interface described below.
+### Installation
 
-### The shepherd_t0.py script
+Clone the repository and install the package, which also installs its only dependency, SciPy:
 
-This script is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors. 
+```bash
+git clone https://github.com/Nik-Tavakolian/Shepherd.git
+cd Shepherd
+pip install .
+```
+
+This provides the `shepherd` command with two subcommands, `shepherd cluster` and `shepherd track`, described below. `python -m shepherd` works as well.
+
+**Upgrading from version 1:** `shepherd cluster` replaces `python3 shepherd_t0.py` and `shepherd track` replaces `python3 shepherd_multi.py`. All options are unchanged. The original scripts are available under the `v1.0.0` tag.
+
+### shepherd cluster
+
+This command is designed to cluster the sequencing reads from a single time point to correct substitution errors and single insertion and deletion errors. 
 
 **IMPORTANT NOTE:** Shepherd will try to estimate the error rate from the input file. However, since we are estimating a small probability we need a large number of input sequences to do so accurately. If your data has fewer than 10 000 sequences or if you observe unrealistic error rate estimates we suggest providing Shepherd with an error rate estimate using the optional input parameter **-e**.
 
@@ -16,7 +28,7 @@ This script is designed to cluster the sequencing reads from a single time point
 
 #### Required Inputs
 
-These inputs must be provided to run the script.
+These inputs must be provided to run the command.
 
 **-l:** (integer) The correct barcode length.
 
@@ -55,21 +67,21 @@ These inputs are optional and we recommend using the default values determined b
 
 **_index:** The k-mer Index stored in the pickle format.
                                                                                              
-**_params:** The parameters used to run the script stored in the pickle format.
+**_params:** The parameters used to run the command stored in the pickle format.
 
 ### Usage
 
-**Command line usage example:** <code>python3 shepherd_t0.py -f testdata_t0.txt -l 20 -e 0.01</code>
+**Command line usage example:** <code>shepherd cluster -f testdata_t0.txt -l 20 -e 0.01</code>
 
-### The shepherd_multi.py script
+### shepherd track
 
-This script is designed to use the the clustering from the first time point, i.e., the outputs of shepherd_t0.py, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that the shepherd_t0.py script must be executed in the same folder prior to running shepherd_multi.py. 
+This command is designed to use the the clustering from the first time point, i.e., the outputs of shepherd cluster, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that shepherd cluster must be run on the first time point in the same folder before running shepherd track. 
 
 ### Inputs
 
-**-f0:** (.txt file) The same input file used to run the shepherd_t0.py script containing the sequences and the sequence counts.                                             
+**-f0:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.                                             
 
-**-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd_t0.py (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
+**-fn:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
 
 **-o:** (string) The prefix of the final output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
 
@@ -82,4 +94,4 @@ This script is designed to use the the clustering from the first time point, i.e
 ### Usage
 
 **Command line usage example:**\
-<code>python3 shepherd_multi.py -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>
+<code>shepherd track -f0 testdata_t0.txt -fn testdata_t1.txt testdata_t2.txt</code>

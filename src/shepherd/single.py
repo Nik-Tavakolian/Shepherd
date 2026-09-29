@@ -4,7 +4,6 @@ import json
 import time
 import math
 import sys
-import argparse
 import csv
 from scipy.stats import binom
 
@@ -207,20 +206,8 @@ def correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     return seq_to_clust_dict, pb_to_freq_dict
 
-if __name__ == '__main__':
-
-    my_parser = argparse.ArgumentParser(prog='Shepherd Single',
-                                        description='Cluster barcode reads at a single time point')
-    my_parser.add_argument('-f', action='store', type=str, required=True, help='Input file name')
-    my_parser.add_argument('-l', action='store', type=int, required=True, help='Barcode length')
-    my_parser.add_argument('-e', action='store', type=float, help='Substitution error rate estimate')
-    my_parser.add_argument('-eps', action='store', type=int, help='Hamming distance threshold')
-    my_parser.add_argument('-k', action='store', type=int, help='Substring length')
-    my_parser.add_argument('-tau', action='store', type=int, help='Distance threshold for frequency 1 sequences')
-    my_parser.add_argument('-ft', action='store', type=int, help='Frequency threshold')
-    my_parser.add_argument('-bft', action='store', type=float, help='Bayes factor threshold')
-    my_parser.add_argument('-Nh', action='store', type=int, help='Number of sequences used for rho estimation')
-    args = my_parser.parse_args()
+def run(args):
+    """Run ``shepherd cluster`` with arguments parsed by shepherd.cli."""
 
     filename = args.f
     file_prefix = filename[:-4]

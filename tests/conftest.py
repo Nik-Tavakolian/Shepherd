@@ -1,20 +1,20 @@
 """Shared helpers for the Shepherd regression tests.
 
-The tests run shepherd_t0.py and shepherd_multi.py end to end on synthetic
-data generated as described in Supplementary Section 4.A: random barcodes
+The tests run ``shepherd cluster`` and ``shepherd track`` end to end on
+synthetic data generated as described in Supplementary Section 4.A: random barcodes
 with exponentially distributed read counts and a constant per nucleotide
 substitution error rate.
 """
 import csv
-import subprocess
-import sys
+import os
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+from shepherd.cli import main
+
 BARCODE_LENGTH = 20
 
 
@@ -51,16 +51,24 @@ def write_counts(path, background, extra):
             fh.write(f'{seq}\t{count}\n')
 
 
-def run_t0(workdir, filename, *args):
-    subprocess.run([sys.executable, str(REPO_ROOT / 'shepherd_t0.py'), '-f', filename,
-                    '-l', str(BARCODE_LENGTH), *args],
-                   cwd=workdir, check=True, capture_output=True)
+@contextmanager
+def working_directory(path):
+    previous = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
 
 
-def run_multi(workdir, f0, later_files):
-    subprocess.run([sys.executable, str(REPO_ROOT / 'shepherd_multi.py'), '-f0', f0,
-                    '-fn', *later_files],
-                   cwd=workdir, check=True, capture_output=True)
+def run_cluster(workdir, filename, *args):
+    with working_directory(workdir):
+        main(['cluster', '-f', filename, '-l', str(BARCODE_LENGTH), *args])
+
+
+def run_track(workdir, f0, later_files):
+    with working_directory(workdir):
+        main(['track', '-f0', f0, '-fn', *later_files])
 
 
 def read_multi_freqs(workdir):

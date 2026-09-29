@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shepherd-barcodes"
+version = "2.0.0.dev0"
+description = "Accurate clustering for correcting DNA barcode errors"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Nik Tavakolian" }]
+keywords = ["DNA barcodes", "lineage tracking", "error correction", "clustering", "bioinformatics"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = ["scipy>=1.8"]
+
+[project.optional-dependencies]
+dev = ["numpy", "pytest>=7"]
+
+[project.scripts]
+shepherd = "shepherd.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Nik-Tavakolian/Shepherd"
+Paper = "https://doi.org/10.1093/bioinformatics/btac395"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shepherd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

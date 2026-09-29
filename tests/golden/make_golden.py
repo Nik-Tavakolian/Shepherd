@@ -20,7 +20,7 @@ GOLDEN_DIR = Path(__file__).resolve().parent
 DATA_DIR = GOLDEN_DIR / 'data'
 sys.path.insert(0, str(GOLDEN_DIR.parent))
 
-from conftest import run_multi, run_t0  # noqa: E402
+from conftest import run_cluster, run_track  # noqa: E402
 
 TIME_POINTS = ['t0.txt', 't1.txt', 't2.txt']
 
@@ -94,8 +94,8 @@ def copy_inputs(workdir):
 def run_all_scenarios(workdir):
     copy_inputs(workdir)
     for _, filename, args in SINGLE_SCENARIOS:
-        run_t0(workdir, filename, *args)
-    run_multi(workdir, 't0.txt', TIME_POINTS[1:])
+        run_cluster(workdir, filename, *args)
+    run_track(workdir, 't0.txt', TIME_POINTS[1:])
 
 
 def write_outputs():

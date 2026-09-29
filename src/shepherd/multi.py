@@ -2,7 +2,6 @@ from itertools import combinations
 import pickle
 import json
 import time
-import argparse
 import csv
 import math
 from scipy.stats import binom
@@ -242,14 +241,8 @@ def correct_insertions(insertions_dict, pb_to_freq_dict, seq_to_clust_dict, l):
 
     return seq_to_clust_dict, pb_to_freq_dict
 
-if __name__ == '__main__':
-
-    my_parser = argparse.ArgumentParser(prog='Shepherd Multi',
-                                        description='Cluster barcode reads at multiple time points')
-    my_parser.add_argument('-f0', action='store', type=str, required=True, help='Data file from first time point')
-    my_parser.add_argument('-fn', action='store', nargs='+', help='Ordered list of data files from later time points')
-    my_parser.add_argument('-o', action='store', type=str, help='Output file name prefix')
-    args = my_parser.parse_args()
+def run(args):
+    """Run ``shepherd track`` with arguments parsed by shepherd.cli."""
 
     f0_prefix = args.f0[:-4]
     multi_filenames = args.fn
