@@ -28,7 +28,7 @@ def add_seq_to_k_mer_dict(seq, k_mer_dict, q, l, p, eps):
         if k_mer_comb in k_mer_dict:
             k_mer_dict[k_mer_comb].add(seq)
         else:
-            k_mer_dict[k_mer_comb] = set(seq)
+            k_mer_dict[k_mer_comb] = {seq}
 
     return k_mer_dict
 
