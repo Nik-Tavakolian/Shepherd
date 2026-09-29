@@ -37,6 +37,17 @@ class Clustering:
         self.labels[seq] = self.labels[barcode]
         self.barcode_counts[barcode] += count
 
+    def split_off(self, seq: str, count: int, barcode: str, label: int) -> None:
+        """Turn a sequence in the cluster of barcode into a putative barcode of its own."""
+        self.barcode_counts[barcode] -= count
+        self.add_barcode(seq, count, label)
+
+    def move(self, seq: str, count: int, from_barcode: str, to_barcode: str) -> None:
+        """Move a sequence and its reads from one cluster to another."""
+        self.barcode_counts[from_barcode] -= count
+        self.barcode_counts[to_barcode] += count
+        self.labels[seq] = self.labels[to_barcode]
+
 
 class Match(NamedTuple):
     barcode: str

@@ -10,10 +10,23 @@ shepherd_multi.py scripts.
 import argparse
 import time
 
-from shepherd import __version__, multi
+from shepherd import __version__
 from shepherd.clustering import cluster
-from shepherd.io import output_path, read_counts, write_barcode_counts, write_labels
-from shepherd.parameters import DEFAULT_LOG_BF_THRESHOLD, DEFAULT_N_TOP, estimate_parameters
+from shepherd.io import (
+    output_path,
+    read_barcode_counts,
+    read_counts,
+    write_barcode_counts,
+    write_count_table,
+    write_labels,
+)
+from shepherd.parameters import (
+    DEFAULT_LOG_BF_THRESHOLD,
+    DEFAULT_N_TOP,
+    Parameters,
+    estimate_parameters,
+)
+from shepherd.tracking import Tracker
 
 
 def build_parser():
@@ -66,7 +79,7 @@ def build_parser():
         help='Ordered list of data files from later time points',
     )
     track.add_argument('-o', action='store', type=str, help='Output file name prefix')
-    track.set_defaults(run=multi.run)
+    track.set_defaults(run=run_track)
 
     return parser
 
@@ -108,3 +121,28 @@ def run_cluster(args: argparse.Namespace) -> None:
     params.save(output_path(args.f, '_params.json'))
     write_labels(output_path(args.f, '_seq_clust.csv'), clustering.labels)
     write_barcode_counts(output_path(args.f, '_pb_freq.csv'), clustering.barcode_counts)
+
+
+def run_track(args: argparse.Namespace) -> None:
+    params = Parameters.load(output_path(args.f0, '_params.json'))
+    first_counts = read_barcode_counts(output_path(args.f0, '_pb_freq.csv'))
+    tracker = Tracker(first_counts, params)
+
+    print('Starting classification')
+    print('\t')
+    start = time.time()
+    for time_point, filename in enumerate(args.fn, start=1):
+        print('Classifying time point ' + str(time_point))
+        clustering = tracker.add_time_point(read_counts(filename, params.barcode_length))
+        labels_path = output_path(filename, '_seq_clust.csv')
+        write_labels(labels_path, clustering.labels)
+        print(
+            f'Time Point {time_point} was successfully classified. '
+            f'Results were saved to {labels_path} \n'
+        )
+    print('\t')
+    print('Classification time: ' + str(time.time() - start))
+
+    counts_path = (args.o or 'multi_freqs') + '.csv'
+    write_count_table(counts_path, tracker.counts_per_time_point)
+    print('Results were saved to ' + counts_path)

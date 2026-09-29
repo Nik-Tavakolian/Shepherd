@@ -1,6 +1,9 @@
-"""Regression tests for multiple time point mode (shepherd track)."""
+"""Tests for following barcodes through later time points (shepherd track)."""
 
 from conftest import read_multi_freqs, read_seq_clust, run_cluster, run_track, write_counts
+from shepherd.io import ReadCounts
+from shepherd.parameters import Parameters
+from shepherd.tracking import Tracker
 
 
 def test_pipeline_conserves_reads_of_stable_barcodes(tmp_path, background):
@@ -62,3 +65,40 @@ def test_separating_an_emerging_barcode_counts_each_read_once(tmp_path, backgrou
     assert freqs[barcode] == [1000, 1000]
     assert freqs[emerging] == [0, 250]
     assert near_emerging not in freqs
+
+
+# Unit tests of the Tracker on hand-made data.
+PARAMS = Parameters(
+    barcode_length=20,
+    error_rate=0.005,
+    max_count=100,
+    epsilon=3,
+    tau=2,
+    count_threshold=15,
+    kmer_length=4,
+    n_partitions=5,
+)
+BARCODE = 'AAAAAAAAAACCCCCCCCCC'
+NEW = 'GGGGGGGGGGTTTTTTTTTT'
+
+
+def test_reads_are_assigned_to_the_barcodes_of_the_previous_time_point():
+    tracker = Tracker({BARCODE: 100}, PARAMS)
+    error = 'AAAAAAAAAACCCCCCCCCA'
+    clustering = tracker.add_time_point(ReadCounts(barcodes={BARCODE: 80, error: 3}))
+
+    assert clustering.barcode_counts == {BARCODE: 83}
+    assert clustering.labels[error] == clustering.labels[BARCODE]
+
+
+def test_a_new_barcode_counts_from_the_time_point_after_it_is_first_seen():
+    tracker = Tracker({BARCODE: 100}, PARAMS)
+    new_error = 'GGGGGGGGGGTTTTTTTTTA'
+
+    # t1: NEW is far from every barcode, so it and its error form a candidate.
+    tracker.add_time_point(ReadCounts(barcodes={BARCODE: 90, NEW: 40, new_error: 2}))
+    assert NEW not in tracker.counts_per_time_point[1]
+
+    # t2: NEW is observed again, so it is confirmed, also at t1.
+    tracker.add_time_point(ReadCounts(barcodes={BARCODE: 95, NEW: 60, new_error: 1}))
+    assert [counts.get(NEW, 0) for counts in tracker.counts_per_time_point] == [0, 42, 61]
