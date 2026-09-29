@@ -74,8 +74,10 @@ def get_closest_pb(seq, pb_to_freq_dict_t0, k_mer_dict, q, l, p, eps):
             if len(indices) == 1:
                 closest_pb = pb_neighbors[indices[0]]
             else:
-                closest_pb = max(
-                    [pb_neighbors[j] for j in indices], key=lambda x: pb_to_freq_dict_t0[x]
+                # Ties: the higher count wins, then the alphabetically first sequence,
+                # so the choice does not depend on the iteration order of a set.
+                closest_pb = min(
+                    [pb_neighbors[j] for j in indices], key=lambda x: (-pb_to_freq_dict_t0[x], x)
                 )
 
             return closest_pb, min_dist
@@ -228,8 +230,11 @@ def cluster_unassigned(seq_list, seq_to_freq_dict, k_mer_dict, params):
                     if len(indices) == 1:
                         S_b = pb_neighbors[indices[0]]
                     else:
-                        S_b = max(
-                            [pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x]
+                        # Ties: the higher count wins, then the alphabetically first sequence,
+                        # so the choice does not depend on the iteration order of a set.
+                        S_b = min(
+                            [pb_neighbors[j] for j in indices],
+                            key=lambda x: (-seq_to_freq_dict[x], x),
                         )
                     if min_dist != l:
                         if (f_c == 1 and min_dist <= tau) or min_dist == 1:

@@ -186,8 +186,11 @@ def cluster_reads(
                     if len(indices) == 1:
                         S_b = pb_neighbors[indices[0]]
                     else:
-                        S_b = max(
-                            [pb_neighbors[j] for j in indices], key=lambda x: seq_to_freq_dict[x]
+                        # Ties: the higher count wins, then the alphabetically first sequence,
+                        # so the choice does not depend on the iteration order of a set.
+                        S_b = min(
+                            [pb_neighbors[j] for j in indices],
+                            key=lambda x: (-seq_to_freq_dict[x], x),
                         )
                     if min_dist != l:
                         if (f_c == 1 and min_dist <= tau) or min_dist == 1:
