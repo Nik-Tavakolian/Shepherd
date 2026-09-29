@@ -10,7 +10,8 @@ f_c that lies at Hamming distance d from a putative barcode with read count f_p:
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from functools import cached_property
 
 from scipy.stats import binom
 
@@ -36,17 +37,16 @@ class ErrorModel:
     barcode_length: int
     error_rate: float
     max_count: int
-    p_no_error: float = field(init=False)
-    """Probability that a barcode is read without errors, (1 - rho)^l (Eq. S13)."""
-    neg_log_likelihood_m2: float = field(init=False)
-    """-ln P(f_c, S_c | M2) = l ln 4 + ln f_max (Eq. S11)."""
 
-    def __post_init__(self) -> None:
-        length = self.barcode_length
-        object.__setattr__(self, 'p_no_error', float(binom.pmf(0, length, self.error_rate)))
-        object.__setattr__(
-            self, 'neg_log_likelihood_m2', length * math.log(4) + math.log(self.max_count)
-        )
+    @cached_property
+    def p_no_error(self) -> float:
+        """Probability that a barcode is read without errors, (1 - rho)^l (Eq. S13)."""
+        return float(binom.pmf(0, self.barcode_length, self.error_rate))
+
+    @cached_property
+    def neg_log_likelihood_m2(self) -> float:
+        """-ln P(f_c, S_c | M2) = l ln 4 + ln f_max (Eq. S11)."""
+        return self.barcode_length * math.log(4) + math.log(self.max_count)
 
     def conversion_probability(self, distance: int) -> float:
         """Probability that a read of a barcode is one given sequence at this distance (Eq. S3)."""

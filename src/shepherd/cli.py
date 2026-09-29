@@ -1,17 +1,19 @@
-"""Command line interface.
+"""The ``shepherd`` command.
 
-    shepherd cluster -f reads_t0.txt -l 20             # single time point
-    shepherd track -f0 reads_t0.txt -fn reads_t1.txt   # later time points
+    shepherd cluster -f reads_t0.txt -l 20                         # first time point
+    shepherd track -f0 reads_t0.txt -fn reads_t1.txt reads_t2.txt  # later time points
 
-The options are the same as those of the original shepherd_t0.py and
-shepherd_multi.py scripts.
+The short options are those of the original shepherd_t0.py and
+shepherd_multi.py scripts; each also has a long name.
 """
 
 import argparse
-import time
+import logging
+from collections.abc import Sequence
 
 from shepherd import __version__
 from shepherd.clustering import cluster
+from shepherd.errors import ShepherdError
 from shepherd.io import (
     output_path,
     read_barcode_counts,
@@ -28,121 +30,102 @@ from shepherd.parameters import (
 )
 from shepherd.tracking import Tracker
 
+logger = logging.getLogger('shepherd')
 
-def build_parser():
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
+    try:
+        args.run(args)
+    except (ShepherdError, OSError) as error:
+        parser.exit(1, f'shepherd: error: {error}\n')
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog='shepherd',
-        description='Shepherd: accurate clustering for correcting DNA barcode errors.',
+        prog='shepherd', description='Accurate clustering for correcting DNA barcode errors.'
     )
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
-    subparsers = parser.add_subparsers(dest='command', required=True, metavar='command')
+    commands = parser.add_subparsers(required=True, metavar='command')
 
-    cluster_parser = subparsers.add_parser(
-        'cluster',
-        help='cluster barcode reads at a single time point',
-        description='Cluster barcode reads at a single time point',
+    cluster_parser = commands.add_parser(
+        'cluster', help='cluster the reads of the first time point'
+    )
+    cluster_parser.add_argument('-f', '--input', required=True, help='sequences and read counts')
+    cluster_parser.add_argument('-l', '--length', type=int, required=True, help='barcode length')
+    cluster_parser.add_argument('-e', '--error-rate', type=float, help='substitution error rate')
+    cluster_parser.add_argument('-eps', '--epsilon', type=int, help='maximum merge distance')
+    cluster_parser.add_argument('-k', '--kmer-length', type=int, help='k-mer length')
+    cluster_parser.add_argument(
+        '-tau', '--tau', type=int, help='merge distance for one-read sequences'
+    )
+    cluster_parser.add_argument('-ft', '--count-threshold', type=int, help='count of sure barcodes')
+    cluster_parser.add_argument(
+        '-bft',
+        '--log-bf-threshold',
+        type=float,
+        default=DEFAULT_LOG_BF_THRESHOLD,
+        help='log Bayes factor threshold (default: %(default)s)',
     )
     cluster_parser.add_argument(
-        '-f', action='store', type=str, required=True, help='Input file name'
-    )
-    cluster_parser.add_argument(
-        '-l', action='store', type=int, required=True, help='Barcode length'
-    )
-    cluster_parser.add_argument(
-        '-e', action='store', type=float, help='Substitution error rate estimate'
-    )
-    cluster_parser.add_argument('-eps', action='store', type=int, help='Hamming distance threshold')
-    cluster_parser.add_argument('-k', action='store', type=int, help='Substring length')
-    cluster_parser.add_argument(
-        '-tau', action='store', type=int, help='Distance threshold for frequency 1 sequences'
-    )
-    cluster_parser.add_argument('-ft', action='store', type=int, help='Frequency threshold')
-    cluster_parser.add_argument('-bft', action='store', type=float, help='Bayes factor threshold')
-    cluster_parser.add_argument(
-        '-Nh', action='store', type=int, help='Number of sequences used for rho estimation'
+        '-Nh',
+        '--n-top',
+        type=int,
+        default=DEFAULT_N_TOP,
+        help='sequences used to estimate the error rate (default: %(default)s)',
     )
     cluster_parser.set_defaults(run=run_cluster)
 
-    track = subparsers.add_parser(
-        'track',
-        help='track barcodes across later time points using the clustering of the first',
-        description='Cluster barcode reads at multiple time points',
+    track_parser = commands.add_parser(
+        'track', help='follow the barcodes of the first time point through later ones'
     )
-    track.add_argument(
-        '-f0', action='store', type=str, required=True, help='Data file from first time point'
+    track_parser.add_argument('-f0', '--first', required=True, help='input of the first time point')
+    track_parser.add_argument('-fn', '--later', nargs='+', required=True, help='later inputs')
+    track_parser.add_argument(
+        '-o', '--output', default='multi_freqs', help='count table name (default: %(default)s)'
     )
-    track.add_argument(
-        '-fn',
-        action='store',
-        nargs='+',
-        required=True,
-        help='Ordered list of data files from later time points',
-    )
-    track.add_argument('-o', action='store', type=str, help='Output file name prefix')
-    track.set_defaults(run=run_track)
+    track_parser.set_defaults(run=run_track)
 
     return parser
 
 
-def main(argv=None):
-    args = build_parser().parse_args(argv)
-    args.run(args)
-
-
 def run_cluster(args: argparse.Namespace) -> None:
-    reads = read_counts(args.f, args.l)
-    start = time.time()
+    reads = read_counts(args.input, args.length)
     params = estimate_parameters(
         reads.barcodes,
-        args.l,
-        error_rate=args.e,
-        epsilon=args.eps,
-        kmer_length=args.k,
+        args.length,
+        error_rate=args.error_rate,
+        epsilon=args.epsilon,
+        kmer_length=args.kmer_length,
         tau=args.tau,
-        count_threshold=args.ft,
-        log_bf_threshold=DEFAULT_LOG_BF_THRESHOLD if args.bft is None else args.bft,
-        n_top=DEFAULT_N_TOP if args.Nh is None else args.Nh,
+        count_threshold=args.count_threshold,
+        log_bf_threshold=args.log_bf_threshold,
+        n_top=args.n_top,
     )
-    print('Shepherd Single Parameters:')
-    print('\t')
-    print('Sequence length: ' + str(params.barcode_length))
-    print('Substitution Error Rate Estimate: ' + str(params.error_rate))
-    print('epsilon: ' + str(params.epsilon))
-    print('tau: ' + str(params.tau))
-    print('f: ' + str(params.count_threshold))
-    print('Bayes Factor Threshold: ' + str(params.log_bf_threshold))
-    print('Substring Length: ' + str(params.kmer_length))
-    print('Number of Partitions: ' + str(params.n_partitions))
-    print('\t')
+    logger.info('Parameters: %s', params)
 
     clustering = cluster(reads, params)
-    print('Clustering time: ' + str(time.time() - start))
+    logger.info('Found %d putative barcodes', len(clustering.barcode_counts))
 
-    params.save(output_path(args.f, '_params.json'))
-    write_labels(output_path(args.f, '_seq_clust.csv'), clustering.labels)
-    write_barcode_counts(output_path(args.f, '_pb_freq.csv'), clustering.barcode_counts)
+    write_labels(output_path(args.input, '_seq_clust.csv'), clustering.labels)
+    write_barcode_counts(output_path(args.input, '_pb_freq.csv'), clustering.barcode_counts)
+    params.save(output_path(args.input, '_params.json'))
 
 
 def run_track(args: argparse.Namespace) -> None:
-    params = Parameters.load(output_path(args.f0, '_params.json'))
-    first_counts = read_barcode_counts(output_path(args.f0, '_pb_freq.csv'))
-    tracker = Tracker(first_counts, params)
-
-    print('Starting classification')
-    print('\t')
-    start = time.time()
-    for time_point, filename in enumerate(args.fn, start=1):
-        print('Classifying time point ' + str(time_point))
-        clustering = tracker.add_time_point(read_counts(filename, params.barcode_length))
-        labels_path = output_path(filename, '_seq_clust.csv')
-        write_labels(labels_path, clustering.labels)
-        print(
-            f'Time Point {time_point} was successfully classified. '
-            f'Results were saved to {labels_path} \n'
+    counts_path = output_path(args.first, '_pb_freq.csv')
+    if not counts_path.exists():
+        raise ShepherdError(
+            f'{counts_path} not found; run `shepherd cluster` on {args.first} first'
         )
-    print('\t')
-    print('Classification time: ' + str(time.time() - start))
+    params = Parameters.load(output_path(args.first, '_params.json'))
+    tracker = Tracker(read_barcode_counts(counts_path), params)
 
-    counts_path = (args.o or 'multi_freqs') + '.csv'
-    write_count_table(counts_path, tracker.counts_per_time_point)
-    print('Results were saved to ' + counts_path)
+    for filename in args.later:
+        clustering = tracker.add_time_point(read_counts(filename, params.barcode_length))
+        logger.info('%s: %d putative barcodes', filename, len(clustering.barcode_counts))
+        write_labels(output_path(filename, '_seq_clust.csv'), clustering.labels)
+
+    write_count_table(args.output + '.csv', tracker.counts_per_time_point)
