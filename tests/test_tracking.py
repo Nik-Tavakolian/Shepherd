@@ -2,7 +2,7 @@
 
 from conftest import read_multi_freqs, read_seq_clust, run_cluster, run_track, write_counts
 from shepherd.io import ReadCounts
-from shepherd.parameters import Parameters
+from shepherd.model import Parameters
 from shepherd.tracking import Tracker
 
 

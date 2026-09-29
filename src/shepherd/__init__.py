@@ -18,9 +18,8 @@ Use from Python::
 from importlib.metadata import PackageNotFoundError, version
 
 from shepherd.clustering import Clustering, cluster
-from shepherd.errors import ShepherdError
 from shepherd.io import ReadCounts, read_counts
-from shepherd.parameters import Parameters, estimate_parameters
+from shepherd.model import Parameters, ShepherdError, estimate_parameters
 from shepherd.tracking import Tracker
 
 try:

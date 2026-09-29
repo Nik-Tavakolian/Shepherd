@@ -11,7 +11,7 @@ from shepherd.clustering import (
     is_error_sequence,
 )
 from shepherd.io import ReadCounts
-from shepherd.parameters import Parameters
+from shepherd.model import Parameters
 
 BARCODE_1 = 'AAAAAAAAAACCCCCCCCCC'
 BARCODE_2 = 'AAAAAAAAAACCCCCCGGGG'  # distance 4 from BARCODE_1

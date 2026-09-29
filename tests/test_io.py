@@ -4,8 +4,8 @@ import csv
 
 import pytest
 
-from shepherd.errors import ShepherdError
 from shepherd.io import output_path, read_counts, write_count_table
+from shepherd.model import ShepherdError
 
 
 def test_read_counts_splits_sequences_by_length(tmp_path):

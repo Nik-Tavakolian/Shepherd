@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from shepherd.errors import ShepherdError
+from shepherd.model import ShepherdError
 
 
 @dataclass

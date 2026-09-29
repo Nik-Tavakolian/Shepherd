@@ -3,11 +3,17 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from shepherd.clustering import Clustering, cluster_reads, correct_indels, find_closest_barcode
+from shepherd.clustering import (
+    Clustering,
+    cluster_reads,
+    correct_indels,
+    find_closest_barcode,
+    sort_by_count,
+    truncated_hamming_distance,
+)
 from shepherd.io import ReadCounts
 from shepherd.kmer_index import KmerIndex
-from shepherd.parameters import Parameters
-from shepherd.sequences import sort_by_count, truncated_hamming_distance
+from shepherd.model import Parameters
 
 
 @dataclass
@@ -61,8 +67,7 @@ class Tracker:
         time_point = _TimePoint(reads.barcodes)
         self._assign_to_previous_barcodes(time_point)
         self._separate_emerging_barcodes(time_point)
-        if time_point.unassigned:
-            self._assign_to_new_barcodes(time_point)
+        self._assign_to_new_barcodes(time_point)
         self._candidates = cluster_reads(time_point.unassigned, self.params).barcode_counts
         correct_indels(reads, time_point.clustering)
         self.counts_per_time_point.append(time_point.clustering.barcode_counts)
@@ -107,10 +112,10 @@ class Tracker:
                     time_point.members[match.barcode] = [seq]
 
     def _separate_emerging_barcodes(self, time_point: _TimePoint) -> None:
-        """Steps 2 and 3."""
+        """Step 2: sequences that fail the Bayesian test become putative barcodes."""
         model = self.params.error_model
-        clustering = time_point.clustering
-        label = max(clustering.labels.values(), default=0)
+        threshold = self.params.log_bf_threshold
+        label = max(time_point.clustering.labels.values(), default=0)
         moved: set[str] = set()
         for barcode, members in time_point.members.items():
             if barcode not in time_point.counts:
@@ -125,27 +130,38 @@ class Tracker:
                     # cluster is not split if any sequence has more reads than
                     # the barcode itself. See "Implementation notes" in the README.
                     break
-                distance = time_point.distances[seq]
-                if model.log_bayes_factor(count, barcode_count, distance) > (
-                    self.params.log_bf_threshold
-                ):
+                log_k = model.log_bayes_factor(count, barcode_count, time_point.distances[seq])
+                if log_k > threshold:
                     continue  # an error sequence of the barcode
-
                 label += 1
-                clustering.split_off(seq, count, barcode, label)
+                time_point.clustering.split_off(seq, count, barcode, label)
                 self._index.add(seq)
-                for other in members[position + 1 :]:
-                    if other in moved:
-                        continue
-                    other_count = time_point.counts[other]
-                    distance_to_new = truncated_hamming_distance(seq, other, self.params.epsilon)
-                    log_k_new = model.log_bayes_factor(other_count, count, distance_to_new)
-                    log_k = model.log_bayes_factor(
-                        other_count, barcode_count, time_point.distances[other]
-                    )
-                    if log_k_new > log_k:
-                        clustering.move(other, other_count, barcode, seq)
-                        moved.add(other)
+                self._move_to_emerging_barcode(
+                    seq, barcode, members[position + 1 :], moved, time_point
+                )
+
+    def _move_to_emerging_barcode(
+        self,
+        new_barcode: str,
+        barcode: str,
+        others: list[str],
+        moved: set[str],
+        time_point: _TimePoint,
+    ) -> None:
+        """Step 3: move the sequences that are more likely error sequences of the new barcode."""
+        model = self.params.error_model
+        counts = time_point.counts
+        for other in others:
+            if other in moved:
+                continue
+            distance = truncated_hamming_distance(new_barcode, other, self.params.epsilon)
+            log_k_new = model.log_bayes_factor(counts[other], counts[new_barcode], distance)
+            log_k = model.log_bayes_factor(
+                counts[other], counts[barcode], time_point.distances[other]
+            )
+            if log_k_new > log_k:
+                time_point.clustering.move(other, counts[other], barcode, new_barcode)
+                moved.add(other)
 
     def _assign_to_new_barcodes(self, time_point: _TimePoint) -> None:
         """Step 4: assign unassigned sequences to barcodes of this time point, if within epsilon."""

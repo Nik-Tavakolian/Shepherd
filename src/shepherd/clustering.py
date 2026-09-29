@@ -1,18 +1,32 @@
 """Clustering the reads of one time point (Section 2.2)."""
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
 from shepherd.io import ReadCounts
 from shepherd.kmer_index import KmerIndex
-from shepherd.parameters import Parameters
-from shepherd.sequences import (
-    single_deletions,
-    single_insertions,
-    sort_by_count,
-    truncated_hamming_distance,
-)
+from shepherd.model import Parameters
+
+
+def sort_by_count(counts: Mapping[str, int]) -> list[str]:
+    """Sequences in descending order of read count; equal counts keep their input order."""
+    return sorted(counts, key=counts.__getitem__, reverse=True)
+
+
+def truncated_hamming_distance(seq_1: str, seq_2: str, max_distance: int) -> int:
+    """The Hamming distance (Eq. 1) if it is at most max_distance, otherwise len(seq_1) (Eq. S20).
+
+    Comparison stops as soon as max_distance is exceeded, which for unrelated
+    sequences happens after a few positions.
+    """
+    distance = 0
+    for nucleotide_1, nucleotide_2 in zip(seq_1, seq_2, strict=True):
+        if nucleotide_1 != nucleotide_2:
+            distance += 1
+            if distance > max_distance:
+                return len(seq_1)
+    return distance
 
 
 @dataclass
@@ -133,20 +147,20 @@ def correct_indels(reads: ReadCounts, clustering: Clustering) -> None:
     obtained by deleting (inserting) one nucleotide. Sequences without such a
     barcode are left unclustered.
     """
-    _merge_into_first_barcode(reads.insertions, single_deletions, clustering)
-    _merge_into_first_barcode(reads.deletions, single_insertions, clustering)
+    for seq, count in reads.insertions.items():
+        deletions = (seq[:i] + seq[i + 1 :] for i in range(len(seq)))
+        _merge_into_first_barcode(seq, count, deletions, clustering)
+    for seq, count in reads.deletions.items():
+        insertions = (seq[:i] + n + seq[i:] for i in range(len(seq) + 1) for n in 'ACGT')
+        _merge_into_first_barcode(seq, count, insertions, clustering)
 
 
 def _merge_into_first_barcode(
-    counts: Mapping[str, int],
-    variants_of: Callable[[str], Iterable[str]],
-    clustering: Clustering,
+    seq: str, count: int, variants: Iterable[str], clustering: Clustering
 ) -> None:
-    for seq, count in counts.items():
-        for variant in variants_of(seq):
-            if variant in clustering.barcode_counts:
-                clustering.merge(seq, count, variant)
-                break
+    barcode = next((v for v in variants if v in clustering.barcode_counts), None)
+    if barcode is not None:
+        clustering.merge(seq, count, barcode)
 
 
 def cluster(reads: ReadCounts, params: Parameters) -> Clustering:

@@ -13,7 +13,6 @@ from collections.abc import Sequence
 
 from shepherd import __version__
 from shepherd.clustering import cluster
-from shepherd.errors import ShepherdError
 from shepherd.io import (
     output_path,
     read_barcode_counts,
@@ -22,10 +21,11 @@ from shepherd.io import (
     write_count_table,
     write_labels,
 )
-from shepherd.parameters import (
+from shepherd.model import (
     DEFAULT_LOG_BF_THRESHOLD,
     DEFAULT_N_TOP,
     Parameters,
+    ShepherdError,
     estimate_parameters,
 )
 from shepherd.tracking import Tracker
