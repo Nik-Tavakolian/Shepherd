@@ -1,6 +1,7 @@
 """Tests for reading and writing files."""
 
 import csv
+from pathlib import Path
 
 import pytest
 
@@ -29,7 +30,7 @@ def test_read_counts_reports_malformed_lines(tmp_path):
     [('t0.txt', 't0_pb_freq.csv'), ('data/reads.t0.txt', 'data/reads.t0_pb_freq.csv')],
 )
 def test_output_path(input_path, expected):
-    assert str(output_path(input_path, '_pb_freq.csv')) == expected
+    assert output_path(input_path, '_pb_freq.csv') == Path(expected)
 
 
 def test_write_count_table_fills_missing_time_points_with_zero(tmp_path):
