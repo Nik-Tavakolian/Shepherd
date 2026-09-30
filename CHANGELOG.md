@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0 (2026-09-30)
 
 Shepherd is now an installable package with a single `shepherd` command. The
 clustering method is unchanged; see "Implementation notes" in the README for

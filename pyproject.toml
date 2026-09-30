@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shepherd-barcodes"
-version = "2.0.0.dev0"
+version = "2.0.0"
 description = "Accurate clustering for correcting DNA barcode errors"
 readme = "README.md"
 requires-python = ">=3.10"
