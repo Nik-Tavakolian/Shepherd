@@ -19,8 +19,12 @@ from shepherd.model import (
 @pytest.mark.parametrize('n', [1, 10, 1_000, 1_000_000])
 @pytest.mark.parametrize('p', [1e-12, 1e-6, 1e-3, 0.3])
 def test_log_binom_pmf_matches_scipy(n, p):
+    # The log-gamma terms are of order ln(n!) and largely cancel, so rounding
+    # differences between implementations scale with ln(n!), not with the result.
+    rounding = 1e-14 * math.lgamma(n + 1)
     for k in {0, 1, min(2, n), n // 2, n}:
-        assert log_binom_pmf(k, n, p) == pytest.approx(binom.logpmf(k, n, p), rel=1e-9, abs=1e-9)
+        expected = binom.logpmf(k, n, p)
+        assert log_binom_pmf(k, n, p) == pytest.approx(expected, rel=1e-9, abs=rounding)
 
 
 def test_log_binom_pmf_is_normalised():
