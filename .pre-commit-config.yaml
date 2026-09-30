@@ -1,0 +1,18 @@
+# Run `pre-commit install` once to check every commit, or
+# `pre-commit run --all-files` to check the whole repository.
+exclude: ^testdata_t\d\.txt$  # example input files are kept byte for byte
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format

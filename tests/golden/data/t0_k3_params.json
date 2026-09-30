@@ -1,0 +1,11 @@
+{
+  "barcode_length": 20,
+  "error_rate": 0.01,
+  "max_count": 611,
+  "epsilon": 3,
+  "tau": 3,
+  "count_threshold": 20,
+  "kmer_length": 3,
+  "n_partitions": 7,
+  "log_bf_threshold": -4.0
+}

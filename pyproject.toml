@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shepherd-barcodes"
+version = "2.0.0"
+description = "Accurate clustering for correcting DNA barcode errors"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Nik Tavakolian" }]
+keywords = ["DNA barcodes", "lineage tracking", "error correction", "clustering", "bioinformatics"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = ["scipy>=1.8"]
+
+[project.optional-dependencies]
+dev = ["mypy", "numpy", "pre-commit", "pytest>=7", "ruff"]
+
+[project.scripts]
+shepherd = "shepherd.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Nik-Tavakolian/Shepherd"
+Paper = "https://doi.org/10.1093/bioinformatics/btac395"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shepherd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+files = ["src", "tests"]
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["shepherd.*"]
+disallow_untyped_defs = true

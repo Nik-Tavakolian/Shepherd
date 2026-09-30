@@ -1,0 +1,5 @@
+# Store text files with LF line endings in the repository and check them out
+# with LF on every platform.
+* text=auto eol=lf
+*.gz binary
+*.pdf binary
