@@ -8,3 +8,17 @@ dist/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
+
+# Editor settings
+.idea/
+.vscode/
+
+# Output of running Shepherd on the example and test data
+/examples/*_seq_clust.csv
+/examples/*_pb_freq.csv
+/examples/*_params.json
+/examples/multi_freqs.csv
+/testdata_t*_seq_clust.csv
+/testdata_t*_pb_freq.csv
+/testdata_t*_params.json
+/multi_freqs.csv
