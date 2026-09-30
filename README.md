@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Nik-Tavakolian/Shepherd/actions/workflows/ci.yml/badge.svg)](https://github.com/Nik-Tavakolian/Shepherd/actions/workflows/ci.yml)
 [![Paper](https://img.shields.io/badge/Bioinformatics-10.1093%2Fbioinformatics%2Fbtac395-blue)](https://doi.org/10.1093/bioinformatics/btac395)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
 
 ## Getting Started
@@ -127,3 +128,28 @@ mypy
 ```
 
 The tests include golden-output tests (`tests/test_golden.py`) that check that the results on a fixed synthetic data set are unchanged. If a change of results is intended, re-record them with `python tests/golden/make_golden.py` and explain the change in the commit message.
+
+## Citation
+
+If you use Shepherd, please cite:
+
+Tavakolian N, Frazão JG, Bendixsen D, Stelkens R, Li C-B. Shepherd: accurate clustering for correcting DNA barcode errors. *Bioinformatics* 38(15):3710–3716 (2022). https://doi.org/10.1093/bioinformatics/btac395
+
+```bibtex
+@article{tavakolian2022shepherd,
+  title   = {Shepherd: accurate clustering for correcting {DNA} barcode errors},
+  author  = {Tavakolian, Nik and Fraz{\~a}o, Jo{\~a}o Guilherme and Bendixsen, Devin and Stelkens, Rike and Li, Chun-Biu},
+  journal = {Bioinformatics},
+  volume  = {38},
+  number  = {15},
+  pages   = {3710--3716},
+  year    = {2022},
+  doi     = {10.1093/bioinformatics/btac395}
+}
+```
+
+## License
+
+Copyright (C) 2021-2026 Nik Tavakolian
+
+Shepherd is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but without any warranty. See [LICENSE](LICENSE) for the full text.

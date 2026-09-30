@@ -43,6 +43,7 @@ where the code differs from the paper's description.
 ### Added
 
 - A Python API: `read_counts`, `estimate_parameters`, `cluster` and `Tracker`.
+- Released under the GNU General Public License v3.0 or later, with citation information.
 - Tests, including golden-output tests on simulated data, and continuous
   integration on Linux, macOS and Windows.
 
