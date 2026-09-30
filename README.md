@@ -21,6 +21,8 @@ pip install .
 
 This provides the `shepherd` command with two subcommands, `shepherd cluster` and `shepherd track`, described below. `python -m shepherd` works as well.
 
+The [examples](examples) folder contains small data sets with their expected results, for trying Shepherd out and checking that it works.
+
 **Upgrading from version 1:** `shepherd cluster` replaces `python3 shepherd_t0.py` and `shepherd track` replaces `python3 shepherd_multi.py`. All options are unchanged. The original scripts are available under the `v1.0.0` tag.
 
 ### shepherd cluster
