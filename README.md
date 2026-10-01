@@ -112,25 +112,6 @@ The code follows the method described in the paper and its Supplementary Materia
 - **Sequences at distance 1** from their closest putative barcode are merged without the Bayesian test if they have fewer reads than the count threshold. This shortcut is not described in the paper and saves most of the tests. It can only differ from the full test when two true barcodes one substitution apart both have fewer reads than the count threshold, which is rare for random barcodes.
 - **Emerging barcodes in `shepherd track`.** A cluster is not tested for emerging barcodes if one of its sequences has more reads than the putative barcode itself at that time point.
 
-## Development
-
-Install the package in editable mode with the development tools, and set up the pre-commit hooks:
-
-```bash
-pip install -e ".[dev]"
-pre-commit install
-```
-
-Run the tests, the linter and the type checker:
-
-```bash
-pytest
-ruff check .
-mypy
-```
-
-The tests include golden-output tests (`tests/test_golden.py`) that check that the results on a fixed synthetic data set are unchanged. If a change of results is intended, re-record them with `python tests/golden/make_golden.py` and explain the change in the commit message.
-
 ## Citation
 
 If you use Shepherd, please cite:
