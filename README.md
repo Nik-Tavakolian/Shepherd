@@ -80,7 +80,7 @@ These inputs are optional and we recommend using the default values determined b
 
 ### shepherd track
 
-This command is designed to use the the clustering from the first time point, i.e., the outputs of shepherd cluster, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that shepherd cluster must be run on the first time point in the same folder before running shepherd track.
+This command is designed to use the clustering from the first time point, i.e., the outputs of shepherd cluster, to estimate the counts of the putative barcodes at later time points, given the sequencing reads from each time point. If new barcodes that did not appear in the first time point emerge in later time points, the program is capable of identifying and tracking them. Note that shepherd cluster must be run on the first time point in the same folder before running shepherd track.
 
 ### Inputs
 
