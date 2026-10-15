@@ -86,7 +86,7 @@ This command is designed to use the clustering from the first time point, i.e., 
 
 **-f0, --first:** (.txt file) The same input file used to run shepherd cluster containing the sequences and the sequence counts.
 
-**-fn, --later:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).\
+**-fn, --later:** (.txt files) Space separated list of .txt files containing the sequences and sequence counts for each time point. These files should have the same format as the input file to shepherd cluster (see testdata_t0.txt) and should be ordered by time point (see usage example below).
 
 **-o, --output:** (string) The prefix of the final output file. By default set to 'multi_freqs' which produces an output file called 'multi_freqs.csv'.
 
